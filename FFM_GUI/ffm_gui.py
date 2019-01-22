@@ -263,7 +263,7 @@ class MainWindow(object):
         self.actionPortfolio.triggered.connect(self.port_entry)
         self.actionStrategy_Model.triggered.connect(self.strat_model_entry)
         self.actionStrategy.triggered.connect(self.strat_entry)
-        self.actionCash.triggered.connect(self.sub)
+        self.actionCash.triggered.connect(self.cash_entry)
 
         # Menu bar elements adding action
         self.menubar.addAction(self.menuFile.menuAction())
@@ -314,6 +314,16 @@ class MainWindow(object):
         entry_window = EntryWindows(Dialog, table_entry="strategy",
                                     data_base=self.db, user_name=self.user_name, password=self.password)
         entry_window.strategy_entry()
+        entry_window.create_button.clicked.connect(entry_window.create)
+        Dialog.show()
+        Dialog.exec_()
+
+    def cash_entry(self):
+
+        Dialog = QtWidgets.QDialog()
+        entry_window = EntryWindows(Dialog, table_entry="cash flow",
+                                    data_base=self.db, user_name=self.user_name, password=self.password)
+        entry_window.cash_flow()
         entry_window.create_button.clicked.connect(entry_window.create)
         Dialog.show()
         Dialog.exec_()

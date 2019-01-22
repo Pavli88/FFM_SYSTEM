@@ -2,6 +2,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import sys
 from FFM_SYSTEM.ffm_data import *
+from datetime import date
 
 
 class EntryWindows:
@@ -25,6 +26,16 @@ class EntryWindows:
                                         user_name=self.user_name,
                                         password=self.password)
 
+        self.cbox_1 = ""
+        self.cbox_2 = ""
+        self.text_input_1 = ""
+        self.text_input_2 = ""
+        self.label_1 = ""
+        self.label_2 = ""
+        self.label_3 = ""
+        self.label_4 = ""
+        self.label_5 = ""
+
         self.create_button = QtWidgets.QPushButton(self.Dialog)
 
         if self.table_entry == "portfolios":
@@ -35,6 +46,9 @@ class EntryWindows:
             self.create_button.setObjectName("create_button")
         elif self.table_entry == "strategy":
             self.create_button.setGeometry(QtCore.QRect(310, 130, 101, 21))
+            self.create_button.setObjectName("create_button")
+        elif self.table_entry == "cash flow":
+            self.create_button.setGeometry(QtCore.QRect(310, 110, 101, 31))
             self.create_button.setObjectName("create_button")
 
     def portfolio_entry(self):
@@ -78,7 +92,7 @@ class EntryWindows:
 
         self.dateEdit = QtWidgets.QDateEdit(self.Dialog)
         self.dateEdit.setGeometry(QtCore.QRect(140, 130, 121, 26))
-        self.dateEdit.setDate(QtCore.QDate(2019, 1, 1))
+        self.dateEdit.setDate(QtCore.QDate(date.today().year, date.today().month, date.today().day))
         self.dateEdit.setObjectName("dateEdit")
 
         self.inc_date = QtWidgets.QLabel(self.Dialog)
@@ -178,7 +192,7 @@ class EntryWindows:
 
         self.dateEdit = QtWidgets.QDateEdit(self.Dialog)
         self.dateEdit.setGeometry(QtCore.QRect(180, 130, 117, 26))
-        self.dateEdit.setDate(QtCore.QDate(2019, 1, 1))
+        self.dateEdit.setDate(QtCore.QDate(date.today().year, date.today().month, date.today().day))
         self.dateEdit.setObjectName("dateEdit")
 
         self.label_1.setText("Strategy Name")
@@ -187,6 +201,71 @@ class EntryWindows:
         self.label_3.setText("Strategy Model")
         self.label_4.setText("Portfolio Code")
         self.label_5.setText("Start Date")
+
+    def cash_flow(self):
+
+        self.Dialog.resize(422, 161)
+        self.Dialog.setWindowTitle("Cash Flow Entry - " + str(self.db))
+        self.Dialog.setFixedSize(self.Dialog.size())
+
+        self.label_3 = QtWidgets.QLabel(self.Dialog)
+        self.label_3.setGeometry(QtCore.QRect(20, 70, 111, 21))
+        self.label_3.setObjectName("label_3")
+        self.label_5 = QtWidgets.QLabel(self.Dialog)
+
+        self.label_5.setGeometry(QtCore.QRect(180, 130, 121, 20))
+        self.label_5.setLayoutDirection(QtCore.Qt.LeftToRight)
+        self.label_5.setAlignment(QtCore.Qt.AlignCenter)
+        self.label_5.setObjectName("label_5")
+
+        self.text_input_1 = QtWidgets.QLineEdit(self.Dialog)
+        self.text_input_1.setGeometry(QtCore.QRect(180, 70, 231, 21))
+        self.text_input_1.setObjectName("text_input_1")
+
+        self.label_1 = QtWidgets.QLabel(self.Dialog)
+        self.label_1.setGeometry(QtCore.QRect(20, 10, 151, 21))
+        self.label_1.setObjectName("label_1")
+
+        self.cbox_1 = QtWidgets.QComboBox(self.Dialog)
+        self.cbox_1.setGeometry(QtCore.QRect(180, 10, 231, 21))
+        self.cbox_1.setObjectName("cbox_1")
+        self.cbox_1.addItems(list(self.entry_connection.select_data("select*from portfolios")["portfolio_name"]))
+        self.cbox_1.currentIndexChanged.connect(self.show_portfolio_currency)
+
+        self.label_2 = QtWidgets.QLabel(self.Dialog)
+        self.label_2.setGeometry(QtCore.QRect(20, 40, 151, 21))
+        self.label_2.setObjectName("label_2")
+
+        self.cbox_2 = QtWidgets.QComboBox(self.Dialog)
+        self.cbox_2.setGeometry(QtCore.QRect(180, 40, 231, 21))
+        self.cbox_2.setObjectName("cbox_2")
+        self.cbox_2.addItems(["INFLOW", "OUTFLOW"])
+
+        self.label_4 = QtWidgets.QLabel(self.Dialog)
+        self.label_4.setGeometry(QtCore.QRect(20, 100, 121, 21))
+        self.label_4.setObjectName("label_4")
+
+        self.label_6 = QtWidgets.QLabel(self.Dialog)
+        self.label_6.setGeometry(QtCore.QRect(20, 130, 121, 21))
+        self.label_6.setObjectName("label_6")
+
+        self.dateEdit = QtWidgets.QDateEdit(self.Dialog)
+        self.dateEdit.setGeometry(QtCore.QRect(180, 100, 117, 26))
+        self.dateEdit.setDate(QtCore.QDate(date.today().year, date.today().month, date.today().day))
+        self.dateEdit.setObjectName("dateEdit")
+
+        self.label_3.setText("Ammount")
+        self.create_button.setText("Create")
+        self.label_1.setText("Portfolio")
+        self.label_2.setText("Cash Flow Type")
+        self.label_6.setText("Currency")
+        self.label_4.setText("Date")
+
+    def show_portfolio_currency(self):
+
+        self.label_5.setText(list(self.entry_connection.select_data("""select*from portfolios 
+                                                                       where portfolio_name = '{port_name}'""".format(
+                                                                  port_name=self.cbox_1.currentText()))["currency"])[0])
 
     def create(self):
 
@@ -265,6 +344,24 @@ class EntryWindows:
 
                 self.Dialog.close()
 
+        elif self.table_entry == "cash flow":
+
+            if len(self.text_input_1.text()) < 2:
+
+                self.msg_box(message="Cash Flow field is empty !", title="Notification", )
+
+            else:
+
+                self.entry_connection.cash_flow(port_code=list(
+                                                self.entry_connection.select_data("""select*from portfolios 
+                                                                  where portfolio_name = '{port_name}'""".format(
+                                                            port_name=self.cbox_1.currentText()))["portfolio_id"])[0],
+                                                ammount=self.text_input_1.text(),
+                                                cft=self.cbox_2.currentText(),
+                                                date=self.dateEdit.text().replace(". ", "").replace(".", ""))
+
+                self.Dialog.close()
+
     def db_radio_button(self, button, table=None, cbox=None, col_name=None):
 
         if button == "dev":
@@ -303,7 +400,7 @@ if __name__ == "__main__":
     MainWindow = QtWidgets.QMainWindow()
 
     ui = EntryWindows()
-    ui.strategy_entry()
+    ui.cash_flow()
     MainWindow.show()
 
     sys.exit(app.exec_())
