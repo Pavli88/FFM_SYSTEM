@@ -244,7 +244,7 @@ class Entries(SQL):
 
         print("Cash flow record was successfully inserted into data base !")
 
-    def sec_info(self, name, type, ticker, industry, sector, website):
+    def sec_info(self, name, type, ticker, industry="-", sector="-", website="-", country="-"):
 
         """
         Security Entry
@@ -258,23 +258,45 @@ class Entries(SQL):
         :return: -
         """
 
+        if (type == "FX") or (type == "CRYPTO"):
+
+            self.type = type
+            self.industry = "-"
+            self.sector = "-"
+            self.website = "-"
+            self.country = "-"
+
+        elif (type == "FUTURES") or (type == "OPTION"):
+            self.type = type
+            self.industry = "-"
+            self.sector = "-"
+            self.website = "-"
+            self.country = "-"
+        elif type == "EQUITY":
+            self.type = type
+            self.industry = industry
+            self.sector = sector
+            self.website = website
+            self.country = country
+
         self.id = list(self.select_data("""select sec_id 
                                            from sec_info""")["sec_id"])[-1]
 
         self.insert_query = """insert into sec_info (sec_id, name, 
                                                      type, ticker, 
-                                                     industry, sector, website)
+                                                     industry, sector, website, country)
 
                                values ('{sec_id}',  '{name}', 
                                        '{type}',    '{ticker}', 
                                        '{industry}','{sector}',
-                                       '{website}')""".format(sec_id=int(self.id) + 1,
+                                       '{website}', '{country}')""".format(sec_id=int(self.id) + 1,
                                                               name=name,
-                                                              type=type,
+                                                              type=self.type,
                                                               ticker=ticker,
-                                                              industry=industry,
-                                                              sector=sector,
-                                                              website=website)
+                                                              industry=self.industry,
+                                                              sector=self.sector,
+                                                              website=website,
+                                                              country=self.country)
 
         self.insert_data(self.insert_query)
         self.close_connection()

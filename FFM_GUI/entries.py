@@ -50,6 +50,9 @@ class EntryWindows:
         elif self.table_entry == "cash flow":
             self.create_button.setGeometry(QtCore.QRect(310, 110, 101, 31))
             self.create_button.setObjectName("create_button")
+        elif self.table_entry == "security":
+            self.create_button.setGeometry(QtCore.QRect(480, 20, 101, 21))
+            self.create_button.setObjectName("create_button")
 
     def portfolio_entry(self):
 
@@ -261,6 +264,117 @@ class EntryWindows:
         self.label_6.setText("Currency")
         self.label_4.setText("Date")
 
+    def security(self):
+
+        self.Dialog.resize(590, 65)
+        self.Dialog.setWindowTitle("Security Entry - " + str(self.db))
+        #self.Dialog.setFixedSize(self.Dialog.size())
+
+        self.label_4 = QtWidgets.QLabel(self.Dialog)
+        self.label_5 = QtWidgets.QLabel(self.Dialog)
+        self.label_7 = QtWidgets.QLabel(self.Dialog)
+        self.label_6 = QtWidgets.QLabel(self.Dialog)
+        self.cbox_2 = QtWidgets.QComboBox(self.Dialog)
+        self.cbox_3 = QtWidgets.QComboBox(self.Dialog)
+        self.cbox_4 = QtWidgets.QComboBox(self.Dialog)
+        self.text_input_3 = QtWidgets.QLineEdit(self.Dialog)
+
+        self.text_input_1 = QtWidgets.QLineEdit(self.Dialog)
+        self.text_input_1.setGeometry(QtCore.QRect(140, 10, 331, 21))
+        self.text_input_1.setObjectName("text_input_1")
+
+        self.label_1 = QtWidgets.QLabel(self.Dialog)
+        self.label_1.setGeometry(QtCore.QRect(20, 10, 111, 21))
+        self.label_1.setObjectName("label_1")
+
+        self.label_2 = QtWidgets.QLabel(self.Dialog)
+        self.label_2.setGeometry(QtCore.QRect(250, 40, 101, 21))
+        self.label_2.setObjectName("label_2")
+
+        self.text_input_2 = QtWidgets.QLineEdit(self.Dialog)
+        self.text_input_2.setGeometry(QtCore.QRect(140, 40, 101, 21))
+        self.text_input_2.setObjectName("text_input_2")
+
+        self.label_3 = QtWidgets.QLabel(self.Dialog)
+        self.label_3.setGeometry(QtCore.QRect(20, 40, 151, 21))
+        self.label_3.setObjectName("label_3")
+
+        self.cbox_1 = QtWidgets.QComboBox(self.Dialog)
+        self.cbox_1.setGeometry(QtCore.QRect(350, 40, 121, 21))
+        self.cbox_1.setObjectName("cbox_1")
+        self.cbox_1.addItems(["BOND", "CRYPTO", "EQUITY", "FX", "FUTURES", "OPTION"])
+        self.cbox_1.currentIndexChanged.connect(self.security_options)
+
+        self.label_1.setText("Security Name")
+        self.label_2.setText("Security Type")
+        self.create_button.setText("Create")
+        self.label_3.setText("Ticker")
+
+    def security_options(self):
+
+        if self.cbox_1.currentText() == "EQUITY":
+
+            self.Dialog.resize(590, 159)
+
+            self.label_4.setGeometry(QtCore.QRect(20, 70, 121, 21))
+            self.label_4.setObjectName("label_4")
+            self.label_4.setText("Industry")
+
+            self.label_5.setGeometry(QtCore.QRect(20, 100, 121, 21))
+            self.label_5.setObjectName("label_5")
+            self.label_5.setText("Sector")
+
+            self.label_7.setGeometry(QtCore.QRect(20, 130, 121, 21))
+            self.label_7.setObjectName("label_7")
+            self.label_7.setText("Country")
+
+            self.label_6.setGeometry(QtCore.QRect(250, 130, 61, 21))
+            self.label_6.setObjectName("label_6")
+            self.label_6.setText("Website")
+
+            self.cbox_2.setGeometry(QtCore.QRect(140, 70, 331, 21))
+            self.cbox_2.setObjectName("cbox_2")
+            self.cbox_2.addItems(['Aerospace & Defense', 'Airlines','Application Software',
+                                  'Asset Management', 'Autos', 'Banks', 'Beverages - Alcoholic',
+                                  'Beverages - Non-Alcoholic', 'Biotechnology', 'Brokers & Exchanges',
+                                  'Building Materials', 'Business Services', 'Chemicals', 'Communication Equipment',
+                                  'Communication Services', 'Computer Hardware', 'Consumer Packaged Goods',
+                                  'Credit Services', 'Drug Manufacturers', 'Engineering & Construction',
+                                  'Entertainment', 'Farm & Construction Machinery', 'Forest Products',
+                                  'Health Care Plans', 'Homebuilding & Construction', 'Industrial Products',
+                                  'Insurance', 'Insurance - Life', 'Insurance - Property & Casualty',
+                                  'Manufacturing - Apparel & Furniture', 'Medical Devices',
+                                  'Medical Diagnostics & Research', 'Medical Distribution',
+                                  'Medical Instruments & Equipment', 'Metals & Mining', 'Oil & Gas - E&P',
+                                  'Oil & Gas - Integrated', 'Oil & Gas - Midstream', 'Oil & Gas - Refining & Marketing',
+                                  'Oil & Gas - Services', 'Online Media', 'Packaging & Containers',
+                                  'REITs', 'Restaurants', 'Retail - Apparel & Specialty', 'Retail - Defensive',
+                                  'Semiconductors', 'Tobacco Products', 'Transportation & Logistics',
+                                  'Travel & Leisure', 'Utilities - Regulated', 'Waste Management'])
+
+            self.cbox_3.setGeometry(QtCore.QRect(140, 100, 331, 21))
+            self.cbox_3.setObjectName("cbox_3")
+            self.cbox_3.addItems(['Basic Materials', 'Communication Services', 'Consumer Cyclical',
+                                  'Consumer Defensive', 'Energy', 'Financial Services', 'Healthcare',
+                                  'Industrials', 'Real Estate', 'Technology', 'Utilities'])
+
+            self.cbox_4.setGeometry(QtCore.QRect(140, 130, 101, 21))
+            self.cbox_4.setObjectName("cbox_4")
+            self.cbox_4.addItems(["CA", "DE", "HU", "JP", "US", "UK"])
+
+            self.text_input_3.setGeometry(QtCore.QRect(320, 130, 151, 21))
+            self.text_input_3.setObjectName("text_input_3")
+
+        elif self.cbox_1.currentText() == "FX":
+            self.Dialog.resize(590, 69)
+
+        elif self.cbox_1.currentText() == "CRYPTO":
+            self.Dialog.resize(590, 69)
+
+        elif self.cbox_1.currentText() == "FUTURES":
+            self.Dialog.resize(590, 69)
+
+
     def show_portfolio_currency(self):
 
         self.label_5.setText(list(self.entry_connection.select_data("""select*from portfolios 
@@ -362,6 +476,31 @@ class EntryWindows:
 
                 self.Dialog.close()
 
+        elif self.table_entry == "security":
+
+            if len(self.text_input_1.text()) < 2:
+
+                self.msg_box(message="Security Name field is empty !", title="Notification", )
+
+            else:
+
+                if (self.cbox_1.currentText() == "FX") or (self.cbox_1.currentText() == "CRYPTO"):
+
+                    self.entry_connection.sec_info(name=self.text_input_1.text(),
+                                                   type=self.cbox_1.currentText(),
+                                                   ticker=self.text_input_2.text())
+                elif self.cbox_1.currentText() == "EQUITY":
+
+                    self.entry_connection.sec_info(name=self.text_input_1.text(),
+                                                   type=self.cbox_1.currentText(),
+                                                   ticker=self.text_input_2.text(),
+                                                   industry=self.cbox_2.currentText(),
+                                                   sector=self.cbox_3.currentText(),
+                                                   website=self.text_input_3.text(),
+                                                   country=self.cbox_4.currentText())
+
+                self.Dialog.close()
+
     def db_radio_button(self, button, table=None, cbox=None, col_name=None):
 
         if button == "dev":
@@ -400,7 +539,7 @@ if __name__ == "__main__":
     MainWindow = QtWidgets.QMainWindow()
 
     ui = EntryWindows()
-    ui.cash_flow()
+    ui.security()
     MainWindow.show()
 
     sys.exit(app.exec_())
