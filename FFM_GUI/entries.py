@@ -75,7 +75,7 @@ class EntryWindows:
         self.port_type_cbox = QtWidgets.QComboBox(self.Dialog)
         self.port_type_cbox.setGeometry(QtCore.QRect(140, 70, 121, 21))
         self.port_type_cbox.setObjectName("port_type_cbox")
-        self.port_type_cbox.addItems(["TEST", "TRADE", "INVESTMENT", "SAVING"])
+        self.port_type_cbox.addItems(["TEST", "TRADE", "INVESTMENT", "SAVING", "BUSINESS"])
 
         self.currency = QtWidgets.QLabel(self.Dialog)
         self.currency.setGeometry(QtCore.QRect(20, 100, 111, 21))

@@ -189,39 +189,84 @@ class MainWindow(object):
         self.menubar.setObjectName("menubar")
         self.main_window.setMenuBar(self.menubar)
 
-        # Status bar object definition
+# ========== Status bar object definition
         self.statusbar = QtWidgets.QStatusBar(self.main_window)
         self.statusbar.setObjectName("statusbar")
         self.main_window.setStatusBar(self.statusbar)
 
-        # File
+# ========== File
         self.menuFile = QtWidgets.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
         self.menuFile.setTitle("File")
+        self.menubar.addAction(self.menuFile.menuAction())
 
-        # Environments
+        self.menuDatabase = QtWidgets.QMenu(self.menuFile)
+        self.menuDatabase.setObjectName("menuDatabase")
+        self.menuDatabase.setTitle("Database")
+        self.menuFile.addAction(self.menuDatabase.menuAction())
+
+        self.actionExport_Data = QtWidgets.QAction(self.main_window)
+        self.actionExport_Data.setObjectName("actionExport_Data")
+        self.actionExport_Data.setText("Export Data")
+        self.menuDatabase.addAction(self.actionExport_Data)
+
+        self.actionImport_Data = QtWidgets.QAction(self.main_window)
+        self.actionImport_Data.setObjectName("actionImport_Data")
+        self.actionImport_Data.setText("Import Data")
+        self.menuDatabase.addAction(self.actionImport_Data)
+
+        # Actions
+
+# ========== Portfolio Management
+        self.menuPort_Management = QtWidgets.QMenu(self.main_window)
+        self.menuPort_Management.setObjectName("menuWidgets")
+        self.menuPort_Management.setTitle("Portfolio Management")
+        self.menubar.addAction(self.menuPort_Management.menuAction())
+
+        self.actionPortfolio_Termination = QtWidgets.QAction(self.main_window)
+        self.actionPortfolio_Termination.setObjectName("actionSEC_gov")
+        self.actionPortfolio_Termination.setText("Portfolio Termination")
+        self.menuPort_Management.addAction(self.actionPortfolio_Termination)
+
+        self.actionIntraday_Data = QtWidgets.QAction(self.main_window)
+        self.actionIntraday_Data.setObjectName("actionIntraday_Data")
+        self.actionIntraday_Data.setText("Intraday Data")
+        self.menuPort_Management.addAction(self.actionIntraday_Data)
+
+        # Actions
+
+# ========== Environments
         self.menuEnvironment = QtWidgets.QMenu(self.menubar)
         self.menuEnvironment.setObjectName("menuEnvironment")
+        self.menuEnvironment.setTitle("Environment")
+        self.menubar.addAction(self.menuEnvironment.menuAction())
+
         self.actionDev = QtWidgets.QAction(self.main_window)
         self.actionDev.setObjectName("actionDev")
+        self.actionDev.setText("Dev")
+        self.menuEnvironment.addAction(self.actionDev)
+
         self.actionLive = QtWidgets.QAction(self.main_window)
         self.actionLive.setObjectName("actionLive")
+        self.actionLive.setText("Live")
+        self.menuEnvironment.addAction(self.actionLive)
+
         self.actionDemo = QtWidgets.QAction(self.main_window)
         self.actionDemo.setObjectName("actionDemo")
-        self.menuEnvironment.addAction(self.actionDemo)
-        self.menuEnvironment.addAction(self.actionDev)
-        self.menuEnvironment.addAction(self.actionLive)
-        self.menuEnvironment.setTitle("Environment")
-        self.actionDev.setText("Dev")
-        self.actionLive.setText("Live")
         self.actionDemo.setText("Demo")
+        self.menuEnvironment.addAction(self.actionDemo)
+
+        # Actions
         self.actionDev.triggered.connect(self.dev_env)
         self.actionLive.triggered.connect(self.live_env)
         self.actionDemo.triggered.connect(self.demo_env)
 
-        # Entries
+# ========== Entries
         self.menuEntry = QtWidgets.QMenu(self.menubar)
         self.menuEntry.setObjectName("menuEntry")
+        self.menuEntry.setTitle("Entry")
+        self.menubar.addAction(self.menuEntry.menuAction())
+
         self.actionPortfolio = QtWidgets.QAction(self.main_window)
         self.actionPortfolio.setObjectName("actionPortfolio")
         self.actionStrategy_Model = QtWidgets.QAction(self.main_window)
@@ -240,7 +285,6 @@ class MainWindow(object):
         self.menuEntry.addAction(self.actionTrade)
         self.menuEntry.addAction(self.actionCash)
         self.menuEntry.addAction(self.actionSecurity)
-        self.menuEntry.setTitle("Entry")
         self.actionPortfolio.setText("Portfolio")
         self.actionStrategy_Model.setText("Strategy Model")
         self.actionStrategy.setText("Strategy")
@@ -248,28 +292,74 @@ class MainWindow(object):
         self.actionCash.setText("Cash")
         self.actionSecurity.setText("Security")
 
-        # Portfolio Management
-        self.menuPort_Management = QtWidgets.QMenu(self.main_window)
-        self.menuPort_Management.setObjectName("menuWidgets")
-        self.actionIntraday_Data = QtWidgets.QAction(self.main_window)
-        self.actionIntraday_Data.setObjectName("actionIntraday_Data")
-        self.menuPort_Management.addAction(self.actionIntraday_Data)
-        self.menubar.addAction(self.menuPort_Management.menuAction())
-        self.menuPort_Management.setTitle("Portfolio Management")
-
-        self.actionIntraday_Data.setText("Intraday Data")
-
-        # Entry actions
+        # Actions
         self.actionPortfolio.triggered.connect(self.port_entry)
         self.actionStrategy_Model.triggered.connect(self.strat_model_entry)
         self.actionStrategy.triggered.connect(self.strat_entry)
         self.actionCash.triggered.connect(self.cash_entry)
         self.actionSecurity.triggered.connect(self.security_entry)
 
-        # Menu bar elements adding action
-        self.menubar.addAction(self.menuFile.menuAction())
-        self.menubar.addAction(self.menuEnvironment.menuAction())
-        self.menubar.addAction(self.menuEntry.menuAction())
+# ========== Data
+        self.menuData = QtWidgets.QMenu(self.menubar)
+        self.menuData.setObjectName("menuData")
+        self.menuData.setTitle("Data")
+        self.menubar.addAction(self.menuData.menuAction())
+
+        self.menuFX = QtWidgets.QMenu(self.menuData)
+        self.menuFX.setObjectName("menuFX")
+        self.menuFX.setTitle("FX")
+        self.menuData.addAction(self.menuFX.menuAction())
+
+        self.menuEquity = QtWidgets.QMenu(self.menuData)
+        self.menuEquity.setObjectName("menuEquity")
+        self.menuEquity.setTitle("Equity")
+        self.menuData.addAction(self.menuEquity.menuAction())
+
+        self.menuReports = QtWidgets.QMenu(self.menuData)
+        self.menuReports.setObjectName("menuReports")
+        self.menuReports.setTitle("Reports")
+        self.menuData.addAction(self.menuReports.menuAction())
+
+        self.actionSEC_gov = QtWidgets.QAction(self.main_window)
+        self.actionSEC_gov.setObjectName("actionSEC_gov")
+        self.actionSEC_gov.setText("SEC.gov")
+        self.menuReports.addAction(self.actionSEC_gov)
+
+        # Actions
+
+# ========== Process
+        self.menuProcess = QtWidgets.QMenu(self.menubar)
+        self.menuProcess.setObjectName("menuProcess")
+        self.menuProcess.setTitle("Process")
+        self.menubar.addAction(self.menuProcess.menuAction())
+
+        self.menuCalculations = QtWidgets.QMenu(self.menuProcess)
+        self.menuCalculations.setObjectName("menuCalculations")
+        self.menuCalculations.setTitle("Portfolio Calculations")
+        self.menuProcess.addAction(self.menuCalculations.menuAction())
+
+        self.actionPortfolio_Positions = QtWidgets.QAction(self.main_window)
+        self.actionPortfolio_Positions.setObjectName("actionSEC_gov")
+        self.actionPortfolio_Positions.setText("Portfolio Positions")
+        self.menuCalculations.addAction(self.actionPortfolio_Positions)
+
+        self.actionPortfolio_Holding = QtWidgets.QAction(self.main_window)
+        self.actionPortfolio_Holding.setObjectName("actionSEC_gov")
+        self.actionPortfolio_Holding.setText("Portfolio Holdings")
+        self.menuCalculations.addAction(self.actionPortfolio_Holding)
+
+        self.actionPortfolio_Return = QtWidgets.QAction(self.main_window)
+        self.actionPortfolio_Return.setObjectName("actionSEC_gov")
+        self.actionPortfolio_Return.setText("Portfolio Returns")
+        self.menuCalculations.addAction(self.actionPortfolio_Return)
+
+        self.menuCalculations2 = QtWidgets.QMenu(self.menuProcess)
+        self.menuCalculations2.setObjectName("menuCalculations2")
+        self.menuCalculations2.setTitle("Security Calculations")
+        self.menuProcess.addAction(self.menuCalculations2.menuAction())
+
+        # Actions
+
 
     def sub(self):
 
