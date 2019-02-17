@@ -142,6 +142,12 @@ class MainWindow(object):
         self.horizontalLayout.addWidget(self.port_import_button)
         self.port_import_button.clicked.connect(self.import_portfolio_data)
 
+        self.trade_button = QtWidgets.QPushButton(self.portfolio_frame)
+        self.trade_button.setObjectName("trade_button")
+        self.horizontalLayout.addWidget(self.trade_button)
+        self.trade_button.setText("Trade")
+        self.trade_button.clicked.connect(self.trade_entry)
+
         self.port_full_name_label = QtWidgets.QLabel(self.portfolio_frame)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -428,6 +434,22 @@ class MainWindow(object):
         entry_window.create_button.clicked.connect(entry_window.create)
         Dialog.show()
         Dialog.exec_()
+
+    def trade_entry(self):
+
+        if len(self.port_search_line.text()) < 1:
+            MsgBoxes().info_box(message="Portfolio Name is empty !", title="Notification")
+        else:
+            Dialog = QtWidgets.QDialog()
+            trade_event = TradeEntry(Dialog, data_base=self.db,
+                               user_name=self.user_name,
+                               password=self.password,
+                               portfolio_name=self.port_search_line.text())
+            trade_event.cbox_1.currentIndexChanged.connect(trade_event.load_securities)
+            trade_event.cbox_3.currentIndexChanged.connect(trade_event.load_strat_desc)
+
+            Dialog.show()
+            Dialog.exec_()
 
     def dev_env(self):
 
