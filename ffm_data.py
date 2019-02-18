@@ -163,6 +163,20 @@ class OnlineData:
         
         return self.query
 
+    def last_eq_price(self):
+
+        """
+        Downloads the last quote of the particular equity
+        :return:
+        """
+
+        self.url = """https://api.iextrading.com/1.0/tops/last?symbols={ticker}""".format(ticker=self.ticker)
+        self.r = requests.get(self.url)
+        self.data_frame = pd.read_json(self.r.text)
+
+        return self.data_frame
+
+
 
 class Entries(SQL):
 
@@ -481,5 +495,5 @@ class Entries(SQL):
 
 if __name__ == "__main__":
 
-    pass
+    OnlineData(ticker="AAPL").last_eq_price()
 

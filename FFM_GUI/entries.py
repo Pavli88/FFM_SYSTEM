@@ -581,6 +581,7 @@ class TradeEntry(object):
 
         self.listWidget = QtWidgets.QListWidget(self.groupBox)
         self.listWidget.setObjectName("listWidget")
+        self.listWidget.itemSelectionChanged.connect(self.get_last_price)
 
         self.gridLayout.addWidget(self.listWidget, 1, 0, 1, 2)
         self.gridLayout_3.addLayout(self.gridLayout, 0, 0, 1, 1)
@@ -603,7 +604,18 @@ class TradeEntry(object):
         self.gridLayout_2.addWidget(self.text_input_2, 1, 1, 1, 2)
         self.label_6 = QtWidgets.QLabel(self.groupBox)
         self.label_6.setObjectName("label_6")
-        self.gridLayout_2.addWidget(self.label_6, 2, 0, 1, 3)
+
+        self.label_15 = QtWidgets.QLabel(self.groupBox)
+        font = QtGui.QFont()
+        font.setPointSize(12)
+        font.setBold(True)
+        font.setWeight(75)
+        self.label_15.setFont(font)
+        self.label_15.setAlignment(QtCore.Qt.AlignCenter)
+        self.label_15.setObjectName("label_15")
+        self.gridLayout_2.addWidget(self.label_15, 2, 1, 1, 2)
+
+        self.gridLayout_2.addWidget(self.label_6, 2, 0, 1, 1)
         self.label_10 = QtWidgets.QLabel(self.groupBox)
         self.label_10.setObjectName("label_10")
         self.gridLayout_2.addWidget(self.label_10, 3, 0, 1, 1)
@@ -620,8 +632,11 @@ class TradeEntry(object):
         self.doubleSpinBox.setSingleStep(5.0)
         self.doubleSpinBox.setObjectName("doubleSpinBox")
         self.gridLayout_2.addWidget(self.doubleSpinBox, 4, 1, 1, 1)
+
         self.create_button = QtWidgets.QPushButton(self.groupBox)
         self.create_button.setObjectName("create_button")
+        self.create_button.clicked.connect(lambda: self.enter_trade(side="BUY"))
+
         self.gridLayout_2.addWidget(self.create_button, 4, 2, 1, 1)
         self.label_8 = QtWidgets.QLabel(self.groupBox)
         self.label_8.setObjectName("label_8")
@@ -630,10 +645,12 @@ class TradeEntry(object):
         self.dateEdit = QtWidgets.QDateEdit(self.groupBox)
         self.dateEdit.setObjectName("dateEdit")
         self.dateEdit.setDate(QtCore.QDate(date.today().year, date.today().month, date.today().day))
-
         self.gridLayout_2.addWidget(self.dateEdit, 5, 1, 1, 1)
+
         self.create_button_2 = QtWidgets.QPushButton(self.groupBox)
         self.create_button_2.setObjectName("create_button_2")
+        self.create_button_2.clicked.connect(lambda: self.enter_trade(side="SELL"))
+
         self.gridLayout_2.addWidget(self.create_button_2, 5, 2, 1, 1)
         self.gridLayout_3.addLayout(self.gridLayout_2, 0, 1, 1, 1)
         self.gridLayout_4.addLayout(self.gridLayout_3, 0, 0, 1, 1)
@@ -650,9 +667,6 @@ class TradeEntry(object):
         self.gridLayout_6.setObjectName("gridLayout_6")
         self.gridLayout_5 = QtWidgets.QGridLayout()
         self.gridLayout_5.setObjectName("gridLayout_5")
-        self.create_button_3 = QtWidgets.QPushButton(self.widget)
-        self.create_button_3.setObjectName("create_button_3")
-        self.gridLayout_5.addWidget(self.create_button_3, 0, 0, 1, 1)
         self.create_button_4 = QtWidgets.QPushButton(self.widget)
         self.create_button_4.setObjectName("create_button_4")
         self.gridLayout_5.addWidget(self.create_button_4, 1, 0, 1, 1)
@@ -772,7 +786,6 @@ class TradeEntry(object):
         self.label_8.setText(_translate("Dialog", "Date"))
         self.create_button_2.setText(_translate("Dialog", "SELL"))
         self.groupBox_2.setTitle(_translate("Dialog", "Open Positions"))
-        self.create_button_3.setText(_translate("Dialog", "Refresh"))
         self.create_button_4.setText(_translate("Dialog", "Close Trade"))
         self.create_button_5.setText(_translate("Dialog", "Amend Trade"))
 
@@ -783,6 +796,74 @@ class TradeEntry(object):
         self.label_12.setText(_translate("Dialog", " Notional Value:"))
 
         self.label_14.setText(_translate("Dialog", " Notional Value:"))
+
+    def enter_trade(self, side):
+
+        self.db_connection = SQL(data_base=self.data_base, user_name=self.user_name, password=self.password)
+        self.strat_code_query = self.db_connection.select_data(select_query="""select*from strategy 
+                                   where strategy_name = '{strat_name}'""".format(strat_name=self.cbox_3.currentText()))
+        self.db_connection.close_connection()
+
+        if self.doubleSpinBox.value() > 0.00:
+            self.leverage = "Yes"
+        else:
+            self.leverage = "No"
+
+        if len(self.text_input_3.text()) > 0:
+            self.sl = "Yes"
+            self.sl_level = self.text_input_3.text()
+
+            if (side == "BUY") and (float(self.last_price) < float(self.sl_level)):
+                MsgBoxes().info_box(message="BUY Trade. SL Price is larger than trade price !", title="Notification")
+            elif (side == "SELL") and (float(self.last_price) > float(self.sl_level)):
+                MsgBoxes().info_box(message="SELL Trade. SL Price is smaller than trade price !", title="Notification")
+            else:
+                Entries(data_base=self.data_base,
+                        user_name=self.user_name,
+                        password=self.password).trade(date=self.dateEdit.text().replace(". ", "").replace(".", ""),
+                                                      portfolio_code=list(self.strat_code_query["portfolio_code"])[0],
+                                                      strategy_code=list(self.strat_code_query["strategy_code"])[0],
+                                                      side=side,
+                                                      quantity=int(self.text_input_2.text()),
+                                                      trade_price=float(self.last_price),
+                                                      leverage=self.leverage,
+                                                      sl=self.sl,
+                                                      sl_level=float(self.sl_level),
+                                                      sec_id=list(self.sec_data["sec_id"])[0],
+                                                      leverage_perc=self.doubleSpinBox.value())
+
+                MsgBoxes().info_box(message="Trade was booked successfully !", title="Notification")
+
+        else:
+            self.sl = "No"
+            self.sl_level = 0
+
+            Entries(data_base=self.data_base,
+                    user_name=self.user_name,
+                    password=self.password).trade(date=self.dateEdit.text().replace(". ", "").replace(".", ""),
+                                                  portfolio_code=list(self.strat_code_query["portfolio_code"])[0],
+                                                  strategy_code=list(self.strat_code_query["strategy_code"])[0],
+                                                  side=side,
+                                                  quantity=int(self.text_input_2.text()),
+                                                  trade_price=float(self.last_price),
+                                                  leverage=self.leverage,
+                                                  sl=self.sl,
+                                                  sl_level=float(self.sl_level),
+                                                  sec_id=list(self.sec_data["sec_id"])[0],
+                                                  leverage_perc=self.doubleSpinBox.value())
+
+            MsgBoxes().info_box(message="Trade was booked successfully !", title="Notification")
+
+    def get_last_price(self):
+
+        self.db_connection = SQL(data_base=self.data_base, user_name=self.user_name, password=self.password)
+        self.sec_data = self.db_connection.select_data(select_query="""select * from sec_info 
+                                     where name = '{sec_name}'""".format(sec_name=self.listWidget.currentItem().text()))
+        self.db_connection.close_connection()
+
+        self.last_price = OnlineData(list(self.sec_data["ticker"])[0]).last_eq_price()
+        self.last_price = list(self.last_price["price"])[0]
+        self.label_15.setText(str(self.last_price))
 
     def load_securities(self):
 
@@ -876,6 +957,22 @@ class TradeEntry(object):
             item.setText(str(sl_lev))
             item = self.tableWidget.item(i, 9)
             item.setText(str(dt))
+
+
+class MsgBoxes:
+
+    def __init__(self):
+
+        self.msg = None
+
+    def info_box(self, message, title):
+
+        self.msg = QMessageBox()
+        self.msg.setIcon(QMessageBox.Information)
+        self.msg.setText(message)
+        self.msg.setWindowTitle(title)
+        self.msg.setStandardButtons(QMessageBox.Ok)
+        self.msg.exec_()
 
 
 if __name__ == "__main__":
