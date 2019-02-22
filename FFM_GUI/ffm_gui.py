@@ -285,18 +285,22 @@ class MainWindow(object):
         self.actionCash.setObjectName("actionCash")
         self.actionSecurity = QtWidgets.QAction(self.main_window)
         self.actionSecurity.setObjectName("actionSecurity")
+        self.actionPortgroup = QtWidgets.QAction(self.main_window)
+        self.actionPortgroup.setObjectName("actionPortgroup")
         self.menuEntry.addAction(self.actionPortfolio)
         self.menuEntry.addAction(self.actionStrategy_Model)
         self.menuEntry.addAction(self.actionStrategy)
         self.menuEntry.addAction(self.actionTrade)
         self.menuEntry.addAction(self.actionCash)
         self.menuEntry.addAction(self.actionSecurity)
+        self.menuEntry.addAction(self.actionPortgroup)
         self.actionPortfolio.setText("Portfolio")
         self.actionStrategy_Model.setText("Strategy Model")
         self.actionStrategy.setText("Strategy")
         self.actionTrade.setText("Trade")
         self.actionCash.setText("Cash")
         self.actionSecurity.setText("Security")
+        self.actionPortgroup.setText("Portfolio Group")
 
         # Actions
         self.actionPortfolio.triggered.connect(self.port_entry)
@@ -304,6 +308,7 @@ class MainWindow(object):
         self.actionStrategy.triggered.connect(self.strat_entry)
         self.actionCash.triggered.connect(self.cash_entry)
         self.actionSecurity.triggered.connect(self.security_entry)
+        self.actionPortgroup.triggered.connect(self.port_group_entry)
 
 # ========== Data
         self.menuData = QtWidgets.QMenu(self.menubar)
@@ -365,7 +370,6 @@ class MainWindow(object):
         self.menuProcess.addAction(self.menuCalculations2.menuAction())
 
         # Actions
-
 
     def sub(self):
 
@@ -440,16 +444,34 @@ class MainWindow(object):
         if len(self.port_search_line.text()) < 1:
             MsgBoxes().info_box(message="Portfolio Name is empty !", title="Notification")
         else:
-            Dialog = QtWidgets.QDialog()
-            trade_event = TradeEntry(Dialog, data_base=self.db,
-                               user_name=self.user_name,
-                               password=self.password,
-                               portfolio_name=self.port_search_line.text())
-            trade_event.cbox_1.currentIndexChanged.connect(trade_event.load_securities)
-            trade_event.cbox_3.currentIndexChanged.connect(trade_event.load_strat_desc)
 
-            Dialog.show()
-            Dialog.exec_()
+            self.get_port_data = SQL(data_base=self.db,
+                                     user_name=self.user_name,
+                                     password=self.password).select_data("""select * from portfolios 
+                                            where portfolio_name = '{port_name}'""".format(
+                                                                                port_name=self.port_search_line.text()))
+
+            if list(self.get_port_data["portfolio_group"])[0] == "Yes":
+                MsgBoxes().info_box(message="Trading activity is not allowed on portfolio groups!",
+                                    title="Notification")
+            else:
+                Dialog = QtWidgets.QDialog()
+                trade_event = TradeEntry(Dialog, data_base=self.db,
+                                   user_name=self.user_name,
+                                   password=self.password,
+                                   portfolio_name=self.port_search_line.text())
+                trade_event.cbox_1.currentIndexChanged.connect(trade_event.load_securities)
+                trade_event.cbox_3.currentIndexChanged.connect(trade_event.load_strat_desc)
+
+                Dialog.show()
+                Dialog.exec_()
+
+    def port_group_entry(self):
+
+        Dialog = QtWidgets.QDialog()
+        port_group_window = PortGroupEditor(Dialog, data_base=self.db, user_name=self.user_name, password=self.password)
+        Dialog.show()
+        Dialog.exec_()
 
     def dev_env(self):
 

@@ -192,7 +192,7 @@ class Entries(SQL):
         self.trd_num = None
         self.mod_query = None
 
-    def portfolios(self, portfolio_name, portfolio_type, currency, inception_date, full_name):
+    def portfolios(self, portfolio_name, portfolio_type, currency, inception_date, full_name, portfolio_group):
 
         """
         Portfolio entry
@@ -210,16 +210,18 @@ class Entries(SQL):
 
         self.insert_query = """insert into portfolios (portfolio_id, portfolio_name, 
                                                           portfolio_type, currency, 
-                                                          inception_date, full_name)
+                                                          inception_date, full_name, portfolio_group)
                                                            
                                   values ('{port_id}', '{port_name}', 
                                           '{port_type}', '{crcy}', 
-                                          '{inc_date}', '{fl_name}')""".format(port_id=int(self.id)+1,
-                                                                               port_name=portfolio_name,
-                                                                               port_type=portfolio_type,
-                                                                               crcy=currency,
-                                                                               inc_date=inception_date,
-                                                                               fl_name=full_name)
+                                          '{inc_date}', '{fl_name}',
+                                          '{port_group}')""".format(port_id=int(self.id)+1,
+                                                                    port_name=portfolio_name,
+                                                                    port_type=portfolio_type,
+                                                                    crcy=currency,
+                                                                    inc_date=inception_date,
+                                                                    fl_name=full_name,
+                                                                    port_group=portfolio_group)
 
         self.insert_data(self.insert_query)
         self.close_connection()

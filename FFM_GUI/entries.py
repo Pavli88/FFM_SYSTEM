@@ -39,7 +39,7 @@ class EntryWindows:
         self.create_button = QtWidgets.QPushButton(self.Dialog)
 
         if self.table_entry == "portfolios":
-            self.create_button.setGeometry(QtCore.QRect(280, 90, 121, 51))
+            self.create_button.setGeometry(QtCore.QRect(280, 100, 121, 51))
             self.create_button.setObjectName("pushButton")
         elif self.table_entry == "strategy_modell":
             self.create_button.setGeometry(QtCore.QRect(340, 70, 71, 21))
@@ -102,12 +102,17 @@ class EntryWindows:
         self.inc_date.setGeometry(QtCore.QRect(20, 130, 111, 21))
         self.inc_date.setObjectName("inc_date")
 
+        self.checkBox = QtWidgets.QCheckBox(self.Dialog)
+        self.checkBox.setGeometry(QtCore.QRect(280, 70, 131, 23))
+        self.checkBox.setObjectName("checkBox")
+
         self.port_name.setText("Portfolio Name")
         self.port_type.setText("Portfolio Type")
         self.currency.setText("Currency")
         self.full_name.setText("Full Name")
         self.inc_date.setText("Inception Date")
         self.create_button.setText("Create")
+        self.checkBox.setText("Portfolio Group")
 
     def strat_modell_entry(self):
 
@@ -395,11 +400,17 @@ class EntryWindows:
 
             else:
 
+                if self.checkBox.isChecked():
+                    self.port_group = "Yes"
+                else:
+                    self.port_group = "No"
+
                 self.entry_connection.portfolios(portfolio_name=self.port_name_line.text(),
                                                  portfolio_type=self.port_type_cbox.currentText(),
                                                  currency=self.currency_line.text(),
                                                  full_name=self.full_name_line.text(),
-                                                 inception_date=self.dateEdit.text().replace(". ", "").replace(".", ""))
+                                                 inception_date=self.dateEdit.text().replace(". ", "").replace(".", ""),
+                                                 portfolio_group=self.port_group)
 
                 self.msg_box(message="""{port} was entered successfully into {db}""".format(port=self.port_name_line.text(),
                                                                                             db=self.db),
@@ -959,6 +970,109 @@ class TradeEntry(object):
             item.setText(str(dt))
 
 
+class PortGroupEditor(object):
+
+    def __init__(self, Dialog, data_base, user_name, password,):
+
+        self.data_base = data_base
+        self.user_name = user_name
+        self.password = password
+
+        Dialog.setObjectName("Dialog")
+        Dialog.resize(434, 503)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(Dialog.sizePolicy().hasHeightForWidth())
+        Dialog.setSizePolicy(sizePolicy)
+        self.gridLayout_2 = QtWidgets.QGridLayout(Dialog)
+        self.gridLayout_2.setObjectName("gridLayout_2")
+        self.gridLayout = QtWidgets.QGridLayout()
+        self.gridLayout.setObjectName("gridLayout")
+
+        self.treeWidget = QtWidgets.QTreeWidget(Dialog)
+        self.treeWidget.setAnimated(False)
+        self.treeWidget.setColumnCount(1)
+        self.treeWidget.setObjectName("treeWidget")
+
+        self.create_tree(['TOP'], [self.treeWidget])
+
+        self.gridLayout.addWidget(self.treeWidget, 0, 0, 1, 3)
+
+        self.label_1 = QtWidgets.QLabel(Dialog)
+        self.label_1.setObjectName("label_1")
+        self.gridLayout.addWidget(self.label_1, 1, 0, 1, 1)
+        self.comboBox = QtWidgets.QComboBox(Dialog)
+        self.comboBox.setObjectName("comboBox")
+        self.gridLayout.addWidget(self.comboBox, 1, 1, 1, 2)
+        self.label_2 = QtWidgets.QLabel(Dialog)
+        self.label_2.setObjectName("label_2")
+        self.gridLayout.addWidget(self.label_2, 2, 0, 1, 1)
+        self.lineEdit = QtWidgets.QLineEdit(Dialog)
+        self.lineEdit.setObjectName("lineEdit")
+        self.gridLayout.addWidget(self.lineEdit, 2, 1, 1, 1)
+        self.pushButton = QtWidgets.QPushButton(Dialog)
+        self.pushButton.setObjectName("pushButton")
+        self.gridLayout.addWidget(self.pushButton, 2, 2, 1, 1)
+        self.gridLayout_2.addLayout(self.gridLayout, 0, 0, 1, 1)
+
+
+        _translate = QtCore.QCoreApplication.translate
+        Dialog.setWindowTitle("Portfolio Group Editor")
+        self.treeWidget.headerItem().setText(0,"Portfolio Group")
+        __sortingEnabled = self.treeWidget.isSortingEnabled()
+        self.treeWidget.setSortingEnabled(False)
+        self.treeWidget.setSortingEnabled(__sortingEnabled)
+        self.label_1.setText("Portfolio Group")
+        self.label_2.setText("Portfolio")
+        self.pushButton.setText("Add")
+
+    def create_tree(self, port_group, parent_object):
+
+        self.parent = QtWidgets.QTreeWidgetItem(parent_object[0])
+        self.treeWidget.topLevelItem(0).setText(0, port_group[0])
+        round_ = 0
+
+        while len(port_group) > 0:
+
+            for pg, obj in zip(port_group, parent_object):
+
+                self.port_group_list = SQL(data_base=self.data_base,
+                                           user_name=self.user_name,
+                                           password=self.password).select_data(select_query="""
+                                           select*from portfolio_group
+                                           where parent = '{port_group}'""".format(port_group=pg))
+
+                print(self.port_group_list)
+
+                self.parent_list = []
+                self.parent_object_list = []
+
+                for port, type, level in zip(list(self.port_group_list["sleve"]),
+                                             list(self.port_group_list["sleve_type"]),
+                                             range(len(list(self.port_group_list["sleve_type"])))):
+
+                    print("port", port, " type", type, " level", level)
+
+                    if round_ == 0:
+                        obj = self.parent
+
+                    self.item_obj = QtWidgets.QTreeWidgetItem(obj)
+                    self.item_obj.setText(0, port)
+
+                    if type == "p":
+                        self.parent_list.append(port)
+                        self.parent_object_list.append(self.item_obj)
+
+            port_group = self.parent_list
+            parent_object = self.parent_object_list
+            round_ = + 1
+
+            print(port_group)
+            print(parent_object)
+            print(len(port_group))
+
+
 class MsgBoxes:
 
     def __init__(self):
@@ -979,7 +1093,6 @@ if __name__ == "__main__":
 
     app = QtWidgets.QApplication(sys.argv)
     Dialog = QtWidgets.QDialog()
-    ui = TradeEntry()
-    ui.main_window(Dialog)
+    ui = PortGroupEditor(Dialog)
     Dialog.show()
     sys.exit(app.exec_())
