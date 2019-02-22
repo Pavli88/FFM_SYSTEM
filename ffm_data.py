@@ -494,6 +494,30 @@ class Entries(SQL):
 
             print("Trd id: "+str(trade_id)+" is closed !")
 
+    def port_group(self, parent, sleve, sleve_type):
+
+        """
+        Portfolio group entry
+        :param parent:
+        :param sleve:
+        :param sleve_type:
+        :return:
+        """
+
+        self.id = len(self.select_data("""select connection_id
+                                                  from portfolio_group""")["connection_id"])
+
+        self.insert_query = """insert into portfolio_group (connection_id, parent, sleve, sleve_type) 
+                               values ('{id}','{parent}', '{sleve}', '{sleve_type}')""".format(id=int(self.id)+1,
+                                                                                               parent=parent,
+                                                                                               sleve=sleve,
+                                                                                               sleve_type=sleve_type)
+
+        self.insert_data(self.insert_query)
+        self.close_connection()
+
+        print("Portfolio connection was created successfully!")
+
 
 if __name__ == "__main__":
 

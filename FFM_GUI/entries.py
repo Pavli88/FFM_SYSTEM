@@ -978,6 +978,12 @@ class PortGroupEditor(object):
         self.user_name = user_name
         self.password = password
 
+        self.load_port_list = SQL(data_base=self.data_base,
+                                  user_name=self.user_name,
+                                  password=self.password).select_data("select*from portfolios")
+
+        self.port_groups = self.load_port_list[self.load_port_list["portfolio_group"] == "Yes"]
+
         Dialog.setObjectName("Dialog")
         Dialog.resize(434, 503)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
@@ -995,37 +1001,72 @@ class PortGroupEditor(object):
         self.treeWidget.setColumnCount(1)
         self.treeWidget.setObjectName("treeWidget")
 
-        self.create_tree(['TOP'], [self.treeWidget])
-
         self.gridLayout.addWidget(self.treeWidget, 0, 0, 1, 3)
 
         self.label_1 = QtWidgets.QLabel(Dialog)
         self.label_1.setObjectName("label_1")
         self.gridLayout.addWidget(self.label_1, 1, 0, 1, 1)
+
         self.comboBox = QtWidgets.QComboBox(Dialog)
         self.comboBox.setObjectName("comboBox")
-        self.gridLayout.addWidget(self.comboBox, 1, 1, 1, 2)
+        self.gridLayout.addWidget(self.comboBox, 1, 1, 1, 1)
+        self.comboBox.addItems(list(self.port_groups["portfolio_name"]))
+
         self.label_2 = QtWidgets.QLabel(Dialog)
         self.label_2.setObjectName("label_2")
         self.gridLayout.addWidget(self.label_2, 2, 0, 1, 1)
-        self.lineEdit = QtWidgets.QLineEdit(Dialog)
-        self.lineEdit.setObjectName("lineEdit")
-        self.gridLayout.addWidget(self.lineEdit, 2, 1, 1, 1)
+
+        self.port_search_line = QtWidgets.QLineEdit(Dialog)
+        self.port_search_line.setObjectName("lineEdit")
+        self.gridLayout.addWidget(self.port_search_line, 2, 1, 1, 1)
+        self.port_completer = QtWidgets.QCompleter(list(self.load_port_list["portfolio_name"]))
+        self.port_search_line.setCompleter(self.port_completer)
+
         self.pushButton = QtWidgets.QPushButton(Dialog)
         self.pushButton.setObjectName("pushButton")
         self.gridLayout.addWidget(self.pushButton, 2, 2, 1, 1)
-        self.gridLayout_2.addLayout(self.gridLayout, 0, 0, 1, 1)
+        self.pushButton.setText("Add")
+        self.pushButton.clicked.connect(self.add_connection)
 
+        self.pushButton_2 = QtWidgets.QPushButton(Dialog)
+        self.pushButton_2.setObjectName("pushButton_2")
+        self.gridLayout.addWidget(self.pushButton_2, 1, 2, 1, 1)
+        self.pushButton_2.setText("Load")
+        self.pushButton_2.clicked.connect(self.load_port_group)
 
-        _translate = QtCore.QCoreApplication.translate
+        self.gridLayout_2.addLayout(self.gridLayout, 2, 2, 1, 1)
+
         Dialog.setWindowTitle("Portfolio Group Editor")
-        self.treeWidget.headerItem().setText(0,"Portfolio Group")
+
         __sortingEnabled = self.treeWidget.isSortingEnabled()
         self.treeWidget.setSortingEnabled(False)
         self.treeWidget.setSortingEnabled(__sortingEnabled)
         self.label_1.setText("Portfolio Group")
         self.label_2.setText("Portfolio")
-        self.pushButton.setText("Add")
+
+    def add_connection(self):
+
+        self.sleve_type = self.load_port_list[self.load_port_list["portfolio_name"] == self.port_search_line.text()]
+
+        if list(self.sleve_type["portfolio_group"])[0] == "Yes":
+            self.sleve_type = "p"
+
+        else:
+            self.sleve_type = "s"
+
+        Entries(data_base=self.data_base,
+                user_name=self.user_name,
+                password=self.password).port_group(parent=self.comboBox.currentText(),
+                                                   sleve=self.port_search_line.text(),
+                                                   sleve_type=self.sleve_type)
+        
+
+    def load_port_group(self):
+
+        self.treeWidget.clear()
+        self.treeWidget.headerItem().setText(0, "Portfolio Group")
+        self.create_tree([self.comboBox.currentText()], [self.treeWidget])
+
 
     def create_tree(self, port_group, parent_object):
 
