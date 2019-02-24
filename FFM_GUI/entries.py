@@ -48,7 +48,7 @@ class EntryWindows:
             self.create_button.setGeometry(QtCore.QRect(310, 130, 101, 21))
             self.create_button.setObjectName("create_button")
         elif self.table_entry == "cash flow":
-            self.create_button.setGeometry(QtCore.QRect(310, 110, 101, 31))
+            self.create_button.setGeometry(QtCore.QRect(310, 110, 101, 61))
             self.create_button.setObjectName("create_button")
         elif self.table_entry == "security":
             self.create_button.setGeometry(QtCore.QRect(480, 20, 101, 21))
@@ -192,7 +192,9 @@ class EntryWindows:
         self.cbox_2 = QtWidgets.QComboBox(self.Dialog)
         self.cbox_2.setGeometry(QtCore.QRect(180, 100, 231, 21))
         self.cbox_2.setObjectName("cbox_2")
-        self.cbox_2.addItems(list(self.entry_connection.select_data("select*from portfolios")["portfolio_name"]))
+        self.cbox_2.addItems(list(self.entry_connection.select_data("""select*from portfolios 
+                                                                    where portfolio_group = 'No' 
+                                                                  and portfolio_type != 'SAVING'""")["portfolio_name"]))
 
         self.label_5 = QtWidgets.QLabel(self.Dialog)
         self.label_5.setGeometry(QtCore.QRect(20, 130, 151, 21))
@@ -207,12 +209,12 @@ class EntryWindows:
         self.label_2.setText("Strategy Descreption")
         self.create_button.setText("Create")
         self.label_3.setText("Strategy Model")
-        self.label_4.setText("Portfolio Code")
+        self.label_4.setText("Portfolio Name")
         self.label_5.setText("Start Date")
 
     def cash_flow(self):
 
-        self.Dialog.resize(422, 161)
+        self.Dialog.resize(424, 220)
         self.Dialog.setWindowTitle("Cash Flow Entry - " + str(self.db))
         self.Dialog.setFixedSize(self.Dialog.size())
 
@@ -237,7 +239,8 @@ class EntryWindows:
         self.cbox_1 = QtWidgets.QComboBox(self.Dialog)
         self.cbox_1.setGeometry(QtCore.QRect(180, 10, 231, 21))
         self.cbox_1.setObjectName("cbox_1")
-        self.cbox_1.addItems(list(self.entry_connection.select_data("select*from portfolios")["portfolio_name"]))
+        self.cbox_1.addItems(list(self.entry_connection.select_data("""select*from portfolios 
+                                                                    where portfolio_group = 'No'""")["portfolio_name"]))
         self.cbox_1.currentIndexChanged.connect(self.show_portfolio_currency)
 
         self.label_2 = QtWidgets.QLabel(self.Dialog)
@@ -257,10 +260,28 @@ class EntryWindows:
         self.label_6.setGeometry(QtCore.QRect(20, 130, 121, 21))
         self.label_6.setObjectName("label_6")
 
+        self.label_7 = QtWidgets.QLabel(self.Dialog)
+        self.label_7.setGeometry(QtCore.QRect(20, 160, 151, 21))
+        self.label_7.setObjectName("label_7")
+        self.label_7.setText("Client")
+
+        self.label_8 = QtWidgets.QLabel(self.Dialog)
+        self.label_8.setGeometry(QtCore.QRect(20, 190, 151, 21))
+        self.label_8.setObjectName("label_8")
+        self.label_8.setText("Comment")
+
         self.dateEdit = QtWidgets.QDateEdit(self.Dialog)
         self.dateEdit.setGeometry(QtCore.QRect(180, 100, 117, 26))
         self.dateEdit.setDate(QtCore.QDate(date.today().year, date.today().month, date.today().day))
         self.dateEdit.setObjectName("dateEdit")
+
+        self.text_input_2 = QtWidgets.QLineEdit(self.Dialog)
+        self.text_input_2.setGeometry(QtCore.QRect(180, 160, 121, 21))
+        self.text_input_2.setObjectName("text_input_2")
+
+        self.text_input_3 = QtWidgets.QLineEdit(self.Dialog)
+        self.text_input_3.setGeometry(QtCore.QRect(180, 190, 231, 21))
+        self.text_input_3.setObjectName("text_input_3")
 
         self.label_3.setText("Ammount")
         self.create_button.setText("Create")
@@ -483,7 +504,10 @@ class EntryWindows:
                                                             port_name=self.cbox_1.currentText()))["portfolio_id"])[0],
                                                 ammount=self.text_input_1.text(),
                                                 cft=self.cbox_2.currentText(),
-                                                date=self.dateEdit.text().replace(". ", "").replace(".", ""))
+                                                date=self.dateEdit.text().replace(". ", "").replace(".", ""),
+                                                currency=self.label_5.text(),
+                                                comment=self.text_input_3.text(),
+                                                client=self.text_input_2.text())
 
                 self.Dialog.close()
 
@@ -1046,20 +1070,31 @@ class PortGroupEditor(object):
 
     def add_connection(self):
 
-        self.sleve_type = self.load_port_list[self.load_port_list["portfolio_name"] == self.port_search_line.text()]
+        self.load_port = SQL(data_base=self.data_base,
+                             user_name=self.user_name,
+                             password=self.password).select_data("""select*from portfolios 
+                  where portfolio_name = '{port_name}'""".format(port_name=self.treeWidget.selectedItems()[0].text(0)))
 
-        if list(self.sleve_type["portfolio_group"])[0] == "Yes":
-            self.sleve_type = "p"
-
+        if list(self.load_port["portfolio_group"])[0] == "No":
+            MsgBoxes().info_box(message=str(self.treeWidget.selectedItems()[0].text(0)) + " is a portfolio. " +
+            "Portfolios can only be added to portfolio groups!", title="Notification")
         else:
-            self.sleve_type = "s"
+            self.sleve_type = self.load_port_list[self.load_port_list["portfolio_name"] == self.port_search_line.text()]
 
-        Entries(data_base=self.data_base,
-                user_name=self.user_name,
-                password=self.password).port_group(parent=self.comboBox.currentText(),
-                                                   sleve=self.port_search_line.text(),
-                                                   sleve_type=self.sleve_type)
-        
+            if list(self.sleve_type["portfolio_group"])[0] == "Yes":
+                self.sleve_type = "p"
+
+            else:
+                self.sleve_type = "s"
+
+            Entries(data_base=self.data_base,
+                    user_name=self.user_name,
+                    password=self.password).port_group(parent=self.treeWidget.selectedItems()[0].text(0),
+                                                       sleve=self.port_search_line.text(),
+                                                       sleve_type=self.sleve_type)
+
+            MsgBoxes().info_box(message=str(self.port_search_line.text()) + " is added to " + str(self.treeWidget.selectedItems()[0].text(0)), title="Notification")
+
 
     def load_port_group(self):
 

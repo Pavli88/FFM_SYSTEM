@@ -228,16 +228,18 @@ class Entries(SQL):
 
         print("Portfolio was successfully created !")
 
-    def cash_flow(self, port_code, ammount, cft, date):
+    def cash_flow(self, port_code, ammount, cft, date, currency, comment, client):
 
         """
-        Cash flow entry
-
+        Cash Flow Entry
         :param port_code:
         :param ammount:
         :param cft:
         :param date:
-        :return: -
+        :param currency:
+        :param comment:
+        :param client:
+        :return:
         """
 
         self.id = len(self.select_data("""select cash_id 
@@ -245,15 +247,20 @@ class Entries(SQL):
 
         self.insert_query = """insert into cash_flow (cash_id, portfolio_code, 
                                                       ammount, cash_flow_type, 
-                                                      date)
+                                                      date, currency,
+                                                      comment, client)
 
                                values ('{cash_id}', '{port_code}', 
                                        '{ammount}', '{cft}', 
-                                       '{date}')""".format(cash_id=int(self.id) + 1,
-                                                           port_code=port_code,
-                                                           ammount=ammount,
-                                                           cft=cft,
-                                                           date=date,)
+                                       '{date}', '{currency}',
+                                       '{comment}', '{client}')""".format(cash_id=int(self.id) + 1,
+                                                                          port_code=port_code,
+                                                                          ammount=ammount,
+                                                                          cft=cft,
+                                                                          date=date,
+                                                                          currency=currency,
+                                                                          comment=comment,
+                                                                          client=client)
 
         self.insert_data(self.insert_query)
         self.close_connection()
