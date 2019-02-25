@@ -328,7 +328,7 @@ class EntryWindows:
         self.cbox_1 = QtWidgets.QComboBox(self.Dialog)
         self.cbox_1.setGeometry(QtCore.QRect(350, 40, 121, 21))
         self.cbox_1.setObjectName("cbox_1")
-        self.cbox_1.addItems(["BOND", "CRYPTO", "EQUITY", "FX", "FUTURES", "OPTION"])
+        self.cbox_1.addItems(["BOND", "CRYPTO", "EQUITY", "FX", "FUTURES", "LOAN", "OPTION"])
         self.cbox_1.currentIndexChanged.connect(self.security_options)
 
         self.label_1.setText("Security Name")
@@ -398,6 +398,8 @@ class EntryWindows:
             self.Dialog.resize(590, 69)
 
         elif self.cbox_1.currentText() == "FUTURES":
+            self.Dialog.resize(590, 69)
+        elif self.cbox_1.currentText() == "LOAN":
             self.Dialog.resize(590, 69)
 
 
@@ -519,7 +521,7 @@ class EntryWindows:
 
             else:
 
-                if (self.cbox_1.currentText() == "FX") or (self.cbox_1.currentText() == "CRYPTO"):
+                if (self.cbox_1.currentText() == "FX") or (self.cbox_1.currentText() == "CRYPTO") or (self.cbox_1.currentText() == "LOAN"):
 
                     self.entry_connection.sec_info(name=self.text_input_1.text(),
                                                    type=self.cbox_1.currentText(),
@@ -702,8 +704,11 @@ class TradeEntry(object):
         self.gridLayout_6.setObjectName("gridLayout_6")
         self.gridLayout_5 = QtWidgets.QGridLayout()
         self.gridLayout_5.setObjectName("gridLayout_5")
+
         self.create_button_4 = QtWidgets.QPushButton(self.widget)
         self.create_button_4.setObjectName("create_button_4")
+        self.create_button_4.clicked.connect(self.close_trade)
+
         self.gridLayout_5.addWidget(self.create_button_4, 1, 0, 1, 1)
         self.create_button_5 = QtWidgets.QPushButton(self.widget)
         self.create_button_5.setObjectName("create_button_5")
@@ -831,6 +836,14 @@ class TradeEntry(object):
         self.label_12.setText(_translate("Dialog", " Notional Value:"))
 
         self.label_14.setText(_translate("Dialog", " Notional Value:"))
+
+    def close_trade(self):
+
+        Entries(data_base=self.data_base,
+                user_name=self.user_name,
+                password=self.password).trade_modify(trade_id=self.tableWidget.selectedItems()[0].text())
+
+        MsgBoxes().info_box(message=" Trade has been closed !", title="Notification")
 
     def enter_trade(self, side):
 

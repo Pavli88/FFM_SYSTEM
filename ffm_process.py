@@ -4,6 +4,7 @@ from FFM_SYSTEM.ffm_data import *
 from datetime import date
 from datetime import timedelta
 from _datetime import datetime
+import os
 
 # ----------------- #
 #    ARGUMENTS      #
@@ -16,6 +17,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--rundate", help="Specifies on which date to run production. Switch: specific")
 parser.add_argument("--equity_ticker", help="Defining the list of equity tickers or single ticker to "
                                      "produce data. Switches: ALL - All tickers; Specific ticker code",)
+parser.add_argument("--portfolio", help="Specifies on which portfolio to run ffm_processes. "
+                                        "Switch: All - All portfolios"
+                                        "Switch: FUND - Specific fund")
+
 # Database related switches
 
 parser.add_argument("--db_user_name", help="User name for database login. Switch: username")
@@ -25,6 +30,7 @@ parser.add_argument("--env", help="Environment switch. Default:prod; Switches: d
 # Process related switches
 
 parser.add_argument("--ied_download", help="Intraday equity data download. Switch: Yes")
+parser.add_argument("--pos_calc", help="Calculates positions from trade data within a portfolio. Switch: Yes")
 
 args = parser.parse_args()
 
@@ -43,6 +49,8 @@ class FfmProcess:
         self.day = time.strftime("%A")
         self.begtime = time.strftime("%H:%M:%S")
         self.today = date.today()
+        self.portfolios = ""
+        self.trades = ""
 
         if args.rundate is not None:
 
@@ -123,7 +131,87 @@ class FfmProcess:
         print("")
 
     def position_calc(self):
-        pass
+
+        print("********************************************")
+        print("       PORTFOLIO POSITION CALCULATOR        ")
+        print("********************************************")
+
+        if args.portfolio == "ALL":
+
+            self.portfolios = self.sql_connection.select_data(select_query="""select portfolio_name, portfolio_id from portfolios 
+                                                                              where terminate is null 
+                                                                              and portfolio_group = 'No'""")
+            print(self.portfolios)
+            print("")
+
+        else:
+            self.portfolios = self.sql_connection.select_data(select_query="""select portfolio_name, portfolio_id from portfolios 
+                                                                              where terminate is null 
+                                                                              and portfolio_group = 'No'
+                                                and portfolio_name = '{port_name}'""".format(port_name=args.portfolio))
+            print(self.portfolios)
+            print("")
+
+        print("Clearing out previous position records as of " +
+              str(self.query_date) + " for " + str(list(self.portfolios["portfolio_name"])[0]))
+
+        self.sql_connection.insert_data(insert_query="""delete from positions 
+                                                        where date = '{date}' 
+                       and portfolio_code = '{port_code}'""".format(date=self.query_date,
+                                                                    port_code=list(self.portfolios["portfolio_id"])[0]))
+
+        for portfolio in list(self.portfolios["portfolio_name"]):
+
+            print("Quering out trades for "+str(portfolio))
+
+            self.trades = self.sql_connection.select_data(select_query="""select*from trade t, portfolios p 
+                                                                          where t.portfolio_code = p.portfolio_id 
+                                                                          and t.status = 'OPEN'
+                                                                          and p.portfolio_name='{port_name}'""".format(
+                                                                          port_name=portfolio))
+
+            print("Processing trades...")
+
+            for trade in self.trades.index.values:
+
+                self.trade = self.trades.iloc[trade]
+
+                if self.trade["side"] == "BUY":
+                    self.quantity = self.trade["quantity"]
+                else:
+                    self.quantity = self.trade["quantity"]*-1
+
+                print("Date:", self.query_date,
+                      "Port Code:", self.trade["portfolio_code"],
+                      "Strat Code", self.trade["strategy_code"],
+                      "Quantity:", self.quantity,
+                      "Trade Price:", self.trade["trade_price"],
+                      "Sec ID:", self.trade["sec_id"])
+
+                Entries(data_base=self.data_base,
+                        user_name=args.db_user_name,
+                        password=args.db_password).positions(date=self.query_date,
+                                                             portfolio_code=self.trade["portfolio_code"],
+                                                             strategy_code=self.trade["strategy_code"],
+                                                             quantity=self.quantity,
+                                                             trade_price=self.trade["trade_price"],
+                                                             sec_id=self.trade["sec_id"])
+
+                if self.trade["leverage"] == "Yes":
+
+                    print("Leveraged trade")
+
+                    Entries(data_base=self.data_base,
+                            user_name=args.db_user_name,
+                            password=args.db_password).positions(date=self.query_date,
+                                                                 portfolio_code=self.trade["portfolio_code"],
+                                                                 strategy_code=self.trade["strategy_code"],
+                                                                 quantity=(self.trade["trade_price"]*self.trade["quantity"])*(self.trade["leverage_perc"]/100)/100,
+                                                                 trade_price=100,
+                                                                 sec_id=200)
+
+            print("")
+
 
     def open_position_calc(self):
         pass
@@ -182,8 +270,8 @@ if __name__ == "__main__":
 
     ffm_process = FfmProcess()
 
-    if args.ied_download == "Yes":
+    if args.pos_calc == "Yes":
 
-        ffm_process.intraday_equity_price_download()
+        ffm_process.position_calc()
 
-    ffm_process.close_process()
+

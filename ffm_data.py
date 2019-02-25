@@ -281,7 +281,7 @@ class Entries(SQL):
         :return: -
         """
 
-        if (type == "FX") or (type == "CRYPTO"):
+        if (type == "FX") or (type == "CRYPTO") or (type == "LOAN"):
 
             self.type = type
             self.industry = "-"
@@ -494,7 +494,7 @@ class Entries(SQL):
 
         else:
 
-            self.insert_data("""update dev_ffm_sys.trade set status = 'CLOSE', action = 'CLOSED' 
+            self.insert_data("""update trade set status = 'CLOSE', action = 'CLOSED' 
                                 where trade_id = {trd_id}""".format(trd_id=trade_id))
 
             self.close_connection()
@@ -525,8 +525,37 @@ class Entries(SQL):
 
         print("Portfolio connection was created successfully!")
 
+    def positions(self, date, portfolio_code, strategy_code, quantity, trade_price, sec_id):
+
+        """
+        Positions entry
+        :param date:
+        :param portfolio_code:
+        :param strategy_code:
+        :param quantity:
+        :param trade_price:
+        :param sec_id:
+        :return:
+        """
+
+        self.id = len(self.select_data("""select pos_id from positions""")["pos_id"])
+
+        self.insert_query = """insert into positions (pos_id, date, portfolio_code, strategy_code, 
+                                                      quantity, trade_price, sec_id) 
+                                       values ('{pos_id}','{date}', '{portfolio_code}', '{strategy_code}', 
+                                       '{quantity}', '{trade_price}', '{sec_id}')""".format(pos_id=int(self.id) + 1,
+                                                                                            date=date,
+                                                                                            portfolio_code=portfolio_code,
+                                                                                            strategy_code=strategy_code,
+                                                                                            quantity=quantity,
+                                                                                            trade_price=trade_price,
+                                                                                            sec_id=sec_id)
+
+        self.insert_data(self.insert_query)
+        self.close_connection()
+
 
 if __name__ == "__main__":
 
-    OnlineData(ticker="AAPL").last_eq_price()
+    pass
 
