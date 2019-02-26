@@ -152,15 +152,15 @@ class FfmProcess:
             print(self.portfolios)
             print("")
 
-        print("Clearing out previous position records as of " +
-              str(self.query_date) + " for " + str(list(self.portfolios["portfolio_name"])[0]))
+        for portfolio, port_id in zip(list(self.portfolios["portfolio_name"]), list(self.portfolios["portfolio_id"])):
 
-        self.sql_connection.insert_data(insert_query="""delete from positions 
-                                                        where date = '{date}' 
-                       and portfolio_code = '{port_code}'""".format(date=self.query_date,
-                                                                    port_code=list(self.portfolios["portfolio_id"])[0]))
+            print("Clearing out previous position records as of " +
+                  str(self.query_date) + " for " + str(list(self.portfolios["portfolio_name"])[0]))
 
-        for portfolio in list(self.portfolios["portfolio_name"]):
+            self.sql_connection.insert_data(insert_query="""delete from positions 
+                                                                    where date = '{date}' 
+                                   and portfolio_code = '{port_code}'""".format(date=self.query_date,
+                                                                                port_code=port_id))
 
             print("Quering out trades for "+str(portfolio))
 
@@ -196,6 +196,17 @@ class FfmProcess:
                                                              quantity=self.quantity,
                                                              trade_price=self.trade["trade_price"],
                                                              sec_id=self.trade["sec_id"])
+
+                if self.trade["side"] == "SELL":
+
+                    Entries(data_base=self.data_base,
+                            user_name=args.db_user_name,
+                            password=args.db_password).positions(date=self.query_date,
+                                                                 portfolio_code=self.trade["portfolio_code"],
+                                                                 strategy_code=self.trade["strategy_code"],
+                                                                 quantity=(self.quantity*self.trade["trade_price"])/100,
+                                                                 trade_price=100,
+                                                                 sec_id=201)
 
                 if self.trade["leverage"] == "Yes":
 
