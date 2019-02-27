@@ -45,6 +45,7 @@ class MainWindow(object):
         self.user_name_line.setObjectName("lineEdit")
 
         self.password_line = QtWidgets.QLineEdit(self.login_dialog)
+        self.password_line.setEchoMode(QtWidgets.QLineEdit.Password)
         self.password_line.setGeometry(QtCore.QRect(170, 50, 121, 25))
         self.password_line.setObjectName("lineEdit_2")
 

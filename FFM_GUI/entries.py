@@ -250,7 +250,7 @@ class EntryWindows:
         self.cbox_2 = QtWidgets.QComboBox(self.Dialog)
         self.cbox_2.setGeometry(QtCore.QRect(180, 40, 231, 21))
         self.cbox_2.setObjectName("cbox_2")
-        self.cbox_2.addItems(["INFLOW", "OUTFLOW"])
+        self.cbox_2.addItems(["INFLOW", "OUTFLOW", "FUNDING"])
 
         self.label_4 = QtWidgets.QLabel(self.Dialog)
         self.label_4.setGeometry(QtCore.QRect(20, 100, 121, 21))
@@ -511,6 +511,9 @@ class EntryWindows:
                                                 comment=self.text_input_3.text(),
                                                 client=self.text_input_2.text())
 
+                self.msg_box(message="""{ammount} {currency} was booked for {port}""".format(ammount=self.text_input_1.text(),
+                                                                                             currency=self.label_5.text(),
+                                                                                             port=self.cbox_1.currentText()), title="Notification", )
                 self.Dialog.close()
 
         elif self.table_entry == "security":
@@ -582,6 +585,10 @@ class TradeEntry(object):
         self.strategy_query = self.db_connection.select_data(select_query="""select*from strategy 
         where portfolio_code in (select portfolio_id from portfolios 
                                  where portfolio_name = '{portfolio_name}')""".format(portfolio_name=portfolio_name))
+        self.portfolio_data = self.db_connection.select_data(select_query="""select*from portfolios 
+                                               where portfolio_name = '{portfolio}'""".format(portfolio=portfolio_name))
+
+        print(self.portfolio_data)
         self.db_connection.close_connection()
 
         Dialog.setObjectName("Dialog")
@@ -880,6 +887,16 @@ class TradeEntry(object):
                                                       sec_id=list(self.sec_data["sec_id"])[0],
                                                       leverage_perc=self.doubleSpinBox.value())
 
+                Entries(data_base=self.data_base,
+                        user_name=self.user_name,
+                        password=self.password).cash_flow(port_code=list(self.strat_code_query["portfolio_code"])[0],
+                                                          ammount=int(self.text_input_2.text())*float(self.last_price),
+                                                          cft="OUTFLOW",
+                                                          date=self.dateEdit.text().replace(". ", "").replace(".", ""),
+                                                          currency=list(self.portfolio_data["currency"])[0],
+                                                          comment="Trade",
+                                                          client=self.user_name)
+
                 MsgBoxes().info_box(message="Trade was booked successfully !", title="Notification")
 
         else:
@@ -899,6 +916,16 @@ class TradeEntry(object):
                                                   sl_level=float(self.sl_level),
                                                   sec_id=list(self.sec_data["sec_id"])[0],
                                                   leverage_perc=self.doubleSpinBox.value())
+
+            Entries(data_base=self.data_base,
+                    user_name=self.user_name,
+                    password=self.password).cash_flow(port_code=list(self.strat_code_query["portfolio_code"])[0],
+                                                      ammount=int(self.text_input_2.text()) * float(self.last_price),
+                                                      cft="OUTFLOW",
+                                                      date=self.dateEdit.text().replace(". ", "").replace(".", ""),
+                                                      currency=list(self.portfolio_data["currency"])[0],
+                                                      comment="Trade",
+                                                      client=self.user_name)
 
             MsgBoxes().info_box(message="Trade was booked successfully !", title="Notification")
 
