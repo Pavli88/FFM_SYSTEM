@@ -31,6 +31,7 @@ parser.add_argument("--env", help="Environment switch. Default:prod; Switches: d
 
 parser.add_argument("--ied_download", help="Intraday equity data download. Switch: Yes")
 parser.add_argument("--pos_calc", help="Calculates positions from trade data within a portfolio. Switch: Yes")
+parser.add_argument("--nav_calc", help="Calculates portfolios NAV. Switch: Yes")
 
 args = parser.parse_args()
 
@@ -136,6 +137,10 @@ class FfmProcess:
         print("       PORTFOLIO POSITION CALCULATOR        ")
         print("********************************************")
 
+        self.collaterals = self.sql_connection.select_data(select_query="""select*from sec_info 
+                                                                           where type = 'LOAN' 
+                                                                           and ticker in ('MRGN', 'CLTR')""")
+
         if args.portfolio == "ALL":
 
             self.portfolios = self.sql_connection.select_data(select_query="""select portfolio_name, portfolio_id from portfolios 
@@ -204,9 +209,9 @@ class FfmProcess:
                             password=args.db_password).positions(date=self.query_date,
                                                                  portfolio_code=self.trade["portfolio_code"],
                                                                  strategy_code=self.trade["strategy_code"],
-                                                                 quantity=(self.quantity*self.trade["trade_price"])/100,
+                                                                 quantity=(self.quantity*self.trade["trade_price"])*-1/100,
                                                                  trade_price=100,
-                                                                 sec_id=201)
+                                                                 sec_id=list(self.collaterals["sec_id"])[1])
 
                 if self.trade["leverage"] == "Yes":
 
@@ -219,13 +224,99 @@ class FfmProcess:
                                                                  strategy_code=self.trade["strategy_code"],
                                                                  quantity=(self.trade["trade_price"]*self.trade["quantity"])*(self.trade["leverage_perc"]/100)/100,
                                                                  trade_price=100,
-                                                                 sec_id=200)
+                                                                 sec_id=list(self.collaterals["sec_id"])[0])
 
             print("")
 
+    def nav_calc(self):
 
-    def open_position_calc(self):
-        pass
+        print("********************************************")
+        print("       PORTFOLIO NAV CALCULATOR        ")
+        print("********************************************")
+
+        self.all_positions = self.sql_connection.select_data(select_query="""select p.date, p.portfolio_code, p.quantity, s.ticker, s.type 
+                                                                         from positions p, sec_info s 
+                                                                         where p.sec_id = s.sec_id 
+                                                                and p.date = '{date}'""".format(date=self.query_date))
+
+        self.all_cash_flow = self.sql_connection.select_data(select_query="""select*from cash_flow 
+                                                                  where date = '{date}'""".format(date=self.query_date))
+
+        if args.portfolio == "ALL":
+
+            self.portfolios = self.sql_connection.select_data(select_query="""select portfolio_name, portfolio_id from portfolios 
+                                                                                      where terminate is null 
+                                                                                      and portfolio_group = 'No'""")
+            print(self.portfolios)
+            print("")
+
+        else:
+            self.portfolios = self.sql_connection.select_data(select_query="""select portfolio_name, portfolio_id from portfolios 
+                                                                                      where terminate is null 
+                                                                                      and portfolio_group = 'No'
+                                                        and portfolio_name = '{port_name}'""".format(
+                                                                                            port_name=args.portfolio))
+            print(self.portfolios)
+            print("")
+
+        for port_id in list(self.portfolios["portfolio_id"]):
+
+            print("Clearing out previous record as of " + str(self.query_date) + " for portfolio_id: " + str(port_id))
+
+            self.sql_connection.insert_data(insert_query="""delete from portfolio_nav where date = '{date}' 
+                                                                and portfolio_code = '{port_code}'""".format(
+                                                                                                date=self.query_date,
+                                                                                                port_code=port_id))
+
+        print("")
+
+        for port_id in list(self.portfolios["portfolio_id"]):
+
+            self.positions = self.all_positions[self.all_positions["portfolio_code"] == port_id]
+
+            print("Quering out positions for "+str(port_id)+" as of "+str(self.query_date))
+
+            market_value = 0
+
+            for quantity, ticker in zip(list(self.positions["quantity"]), list(self.positions["ticker"])):
+
+                if (ticker == "MRGN") or (ticker == "CLTR"):
+                    price = 100
+                else:
+                    price = OnlineData(ticker=ticker).last_eq_price()
+                    price = list(price["price"])[0]
+
+                market_value = market_value + (quantity*price)
+
+            market_value = round(market_value, 2)
+
+            self.cash_flow = self.all_cash_flow[self.all_cash_flow["portfolio_code"] == port_id]
+
+            print("Calculating cash balance...")
+
+            cash_flow_balance = sum(list(self.cash_flow["ammount"]))
+
+            print("Cash balance -> " + str(cash_flow_balance))
+
+            self.id = self.sql_connection.select_data(select_query="""select*from portfolio_nav""")
+
+            print("Writing calculated portfolio NAV data to database.")
+            print("Holding NAV: " + str(market_value))
+            print("Cash Flow balance: " + str(cash_flow_balance))
+            print("Total NAV: " + str(market_value+cash_flow_balance))
+            print("")
+
+            self.sql_connection.insert_data(insert_query="""insert into portfolio_nav (date, portfolio_code, 
+                                                            holding_nav, nav_id, cash_balance, total_nav) 
+                                                            values ('{date}', '{port_code}', '{holding_nav}', 
+                            '{nav_id}', '{cash_bal}', '{tot_nav}')""".format(date=self.query_date,
+                                                                             port_code=port_id,
+                                                                             holding_nav=market_value,
+                                                                             nav_id=len(list(self.id["nav_id"]))+1,
+                                                                             cash_bal=cash_flow_balance,
+                                                                             tot_nav=market_value+cash_flow_balance))
+
+
 
     def security_return_calc(self):
         pass
@@ -284,5 +375,9 @@ if __name__ == "__main__":
     if args.pos_calc == "Yes":
 
         ffm_process.position_calc()
+
+    if args.nav_calc == "Yes":
+
+        ffm_process.nav_calc()
 
 

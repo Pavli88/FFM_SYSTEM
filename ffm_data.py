@@ -383,7 +383,7 @@ class Entries(SQL):
     def trade(self, date, portfolio_code, strategy_code,
               side, quantity, trade_price, leverage,
               sl, sl_level, sec_id,
-              leverage_perc):
+              leverage_perc, ticker):
 
         """
         Only for trade booking into trade table. Adding to previous open position is treated as a new trade with
@@ -403,7 +403,7 @@ class Entries(SQL):
         self.insert_query = """insert into trade (trade_id, date, trade_num, portfolio_code, 
                                                   strategy_code, side, quantity, trade_price, 
                                                   leverage, status, sl, sl_level,
-                                                  sec_id, leverage_perc, action)
+                                                  sec_id, leverage_perc, action, ticker)
 
                                values ('{trade_id}',  '{date}', 
                                        '{trade_num}','{portfolio_code}', 
@@ -412,28 +412,29 @@ class Entries(SQL):
                                        '{leverage}', '{status}',
                                        '{sl}', '{sl_level}',
                                        '{sec_id}', '{leverage_perc}',
-                                       '{action}')""".format(trade_id=int(self.id) + 1,
-                                                             date=date,
-                                                             trade_num=int(self.trd_num) + 1,
-                                                             portfolio_code=portfolio_code,
-                                                             strategy_code=strategy_code,
-                                                             side=side,
-                                                             quantity=quantity,
-                                                             trade_price=trade_price,
-                                                             leverage=leverage,
-                                                             status="OPEN",
-                                                             sl=sl,
-                                                             sl_level=sl_level,
-                                                             sec_id=sec_id,
-                                                             leverage_perc=leverage_perc,
-                                                             action="LIVE")
+                                       '{action}', '{ticker}')""".format(trade_id=int(self.id) + 1,
+                                                                         date=date,
+                                                                         trade_num=int(self.trd_num) + 1,
+                                                                         portfolio_code=portfolio_code,
+                                                                         strategy_code=strategy_code,
+                                                                         side=side,
+                                                                         quantity=quantity,
+                                                                         trade_price=trade_price,
+                                                                         leverage=leverage,
+                                                                         status="OPEN",
+                                                                         sl=sl,
+                                                                         sl_level=sl_level,
+                                                                         sec_id=sec_id,
+                                                                         leverage_perc=leverage_perc,
+                                                                         action="LIVE",
+                                                                         ticker=ticker)
 
         self.insert_data(self.insert_query)
         self.close_connection()
 
         print("New trade was successfully entered into the system !")
 
-    def trade_modify(self, trade_id, date="0", action="0", quantity="0", trade_price="0"):
+    def trade_modify(self, trade_id, last_price, date="0", action="0", quantity="0", trade_price="0"):
 
         """
         Modify an open trade in trade table. Closing out part of existing trade position.
@@ -494,8 +495,9 @@ class Entries(SQL):
 
         else:
 
-            self.insert_data("""update trade set status = 'CLOSE', action = 'CLOSED' 
-                                where trade_id = {trd_id}""".format(trd_id=trade_id))
+            self.insert_data("""update trade set status = 'CLOSE', action = 'CLOSED', close_price = {cl_price}
+                                where trade_id = {trd_id}""".format(cl_price=last_price,
+                                                                    trd_id=trade_id))
 
             self.close_connection()
 

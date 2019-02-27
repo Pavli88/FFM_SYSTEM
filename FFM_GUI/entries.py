@@ -500,11 +500,17 @@ class EntryWindows:
 
             else:
 
+                if self.cbox_2.currentText() == "OUTFLOW":
+
+                    self.cash_flow_ammount = float(self.text_input_1.text())*-1
+                else:
+                    self.cash_flow_ammount = self.text_input_1.text()
+
                 self.entry_connection.cash_flow(port_code=list(
                                                 self.entry_connection.select_data("""select*from portfolios 
                                                                   where portfolio_name = '{port_name}'""".format(
                                                             port_name=self.cbox_1.currentText()))["portfolio_id"])[0],
-                                                ammount=self.text_input_1.text(),
+                                                ammount=self.cash_flow_ammount,
                                                 cft=self.cbox_2.currentText(),
                                                 date=self.dateEdit.text().replace(". ", "").replace(".", ""),
                                                 currency=self.label_5.text(),
@@ -588,7 +594,6 @@ class TradeEntry(object):
         self.portfolio_data = self.db_connection.select_data(select_query="""select*from portfolios 
                                                where portfolio_name = '{portfolio}'""".format(portfolio=portfolio_name))
 
-        print(self.portfolio_data)
         self.db_connection.close_connection()
 
         Dialog.setObjectName("Dialog")
@@ -815,6 +820,11 @@ class TradeEntry(object):
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
+        try:
+            self.load_strat_desc()
+        except:
+            MsgBoxes().info_box(message="Portfolio does not include any strategies! ", title="Notification")
+
     def retranslateUi(self, Dialog):
 
         _translate = QtCore.QCoreApplication.translate
@@ -846,11 +856,32 @@ class TradeEntry(object):
 
     def close_trade(self):
 
+        self.db_connection = SQL(data_base=self.data_base, user_name=self.user_name, password=self.password)
+        self.sec_data = self.db_connection.select_data(select_query="""select * from trade 
+                               where trade_id = '{trd_id}'""".format(trd_id=self.tableWidget.selectedItems()[0].text()))
+        self.db_connection.close_connection()
+
+        self.last_price = OnlineData(ticker=list(self.sec_data["ticker"])[0]).last_eq_price()
+        self.last_price = list(self.last_price["price"])[0]
+
         Entries(data_base=self.data_base,
                 user_name=self.user_name,
-                password=self.password).trade_modify(trade_id=self.tableWidget.selectedItems()[0].text())
+                password=self.password).trade_modify(trade_id=self.tableWidget.selectedItems()[0].text(),
+                                                     last_price=self.last_price)
 
-        MsgBoxes().info_box(message=" Trade has been closed !", title="Notification")
+        Entries(data_base=self.data_base,
+                user_name=self.user_name,
+                password=self.password).cash_flow(port_code=list(self.sec_data["portfolio_code"])[0],
+                                                  ammount=list(self.sec_data["quantity"])[0] * float(self.last_price),
+                                                  cft="INFLOW",
+                                                  date=self.dateEdit.text().replace(". ", "").replace(".", ""),
+                                                  currency=list(self.portfolio_data["currency"])[0],
+                                                  comment="Trade",
+                                                  client=self.user_name)
+
+        MsgBoxes().info_box(message="Trade has been closed !", title="Notification")
+
+        self.load_strat_desc()
 
     def enter_trade(self, side):
 
@@ -885,12 +916,13 @@ class TradeEntry(object):
                                                       sl=self.sl,
                                                       sl_level=float(self.sl_level),
                                                       sec_id=list(self.sec_data["sec_id"])[0],
-                                                      leverage_perc=self.doubleSpinBox.value())
+                                                      leverage_perc=self.doubleSpinBox.value(),
+                                                      ticker=list(self.sec_data["ticker"])[0])
 
                 Entries(data_base=self.data_base,
                         user_name=self.user_name,
                         password=self.password).cash_flow(port_code=list(self.strat_code_query["portfolio_code"])[0],
-                                                          ammount=int(self.text_input_2.text())*float(self.last_price),
+                                                          ammount=int(self.text_input_2.text())*float(self.last_price)*-1,
                                                           cft="OUTFLOW",
                                                           date=self.dateEdit.text().replace(". ", "").replace(".", ""),
                                                           currency=list(self.portfolio_data["currency"])[0],
@@ -898,6 +930,8 @@ class TradeEntry(object):
                                                           client=self.user_name)
 
                 MsgBoxes().info_box(message="Trade was booked successfully !", title="Notification")
+
+                self.load_strat_desc()
 
         else:
             self.sl = "No"
@@ -915,12 +949,13 @@ class TradeEntry(object):
                                                   sl=self.sl,
                                                   sl_level=float(self.sl_level),
                                                   sec_id=list(self.sec_data["sec_id"])[0],
-                                                  leverage_perc=self.doubleSpinBox.value())
+                                                  leverage_perc=self.doubleSpinBox.value(),
+                                                  ticker=list(self.sec_data["ticker"])[0])
 
             Entries(data_base=self.data_base,
                     user_name=self.user_name,
                     password=self.password).cash_flow(port_code=list(self.strat_code_query["portfolio_code"])[0],
-                                                      ammount=int(self.text_input_2.text()) * float(self.last_price),
+                                                      ammount=int(self.text_input_2.text()) * float(self.last_price)*-1,
                                                       cft="OUTFLOW",
                                                       date=self.dateEdit.text().replace(". ", "").replace(".", ""),
                                                       currency=list(self.portfolio_data["currency"])[0],
@@ -928,6 +963,8 @@ class TradeEntry(object):
                                                       client=self.user_name)
 
             MsgBoxes().info_box(message="Trade was booked successfully !", title="Notification")
+
+            self.load_strat_desc()
 
     def get_last_price(self):
 
