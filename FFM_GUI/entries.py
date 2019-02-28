@@ -402,7 +402,6 @@ class EntryWindows:
         elif self.cbox_1.currentText() == "LOAN":
             self.Dialog.resize(590, 69)
 
-
     def show_portfolio_currency(self):
 
         self.label_5.setText(list(self.entry_connection.select_data("""select*from portfolios 
@@ -506,10 +505,11 @@ class EntryWindows:
                 else:
                     self.cash_flow_ammount = self.text_input_1.text()
 
-                self.entry_connection.cash_flow(port_code=list(
-                                                self.entry_connection.select_data("""select*from portfolios 
+                self.port_code = list(self.entry_connection.select_data("""select*from portfolios 
                                                                   where portfolio_name = '{port_name}'""".format(
-                                                            port_name=self.cbox_1.currentText()))["portfolio_id"])[0],
+                                                            port_name=self.cbox_1.currentText()))["portfolio_id"])[0]
+
+                self.entry_connection.cash_flow(port_code=self.port_code,
                                                 ammount=self.cash_flow_ammount,
                                                 cft=self.cbox_2.currentText(),
                                                 date=self.dateEdit.text().replace(". ", "").replace(".", ""),
@@ -517,9 +517,21 @@ class EntryWindows:
                                                 comment=self.text_input_3.text(),
                                                 client=self.text_input_2.text())
 
+                if self.cbox_2.currentText() == "FUNDING":
+
+                    SQL(data_base=self.db,
+                        user_name=self.user_name,
+                        password=self.password).insert_data(insert_query="""insert into portfolio_nav (date, 
+                                                                            portfolio_code, nav_id, cash_balance) 
+                                                                            values ('{date}', '{port_code}', 1, 
+                                '{cash_bal}')""".format(date=self.dateEdit.text().replace(". ", "").replace(".", ""),
+                                                        port_code=self.port_code,
+                                                        cash_bal=self.cash_flow_ammount))
+
                 self.msg_box(message="""{ammount} {currency} was booked for {port}""".format(ammount=self.text_input_1.text(),
                                                                                              currency=self.label_5.text(),
                                                                                              port=self.cbox_1.currentText()), title="Notification", )
+
                 self.Dialog.close()
 
         elif self.table_entry == "security":

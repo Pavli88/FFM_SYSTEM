@@ -242,7 +242,7 @@ class Entries(SQL):
         :return:
         """
 
-        self.id = len(self.select_data("""select cash_id 
+        self.id = list(self.select_data("""select cash_id 
                                           from cash_flow""")["cash_id"])
 
         self.insert_query = """insert into cash_flow (cash_id, portfolio_code, 
@@ -253,7 +253,7 @@ class Entries(SQL):
                                values ('{cash_id}', '{port_code}', 
                                        '{ammount}', '{cft}', 
                                        '{date}', '{currency}',
-                                       '{comment}', '{client}')""".format(cash_id=int(self.id) + 1,
+                                       '{comment}', '{client}')""".format(cash_id=int(self.id[-1]) + 1,
                                                                           port_code=port_code,
                                                                           ammount=ammount,
                                                                           cft=cft,
@@ -540,12 +540,17 @@ class Entries(SQL):
         :return:
         """
 
-        self.id = len(self.select_data("""select pos_id from positions""")["pos_id"])
+        self.id = list(self.select_data("""select pos_id from positions""")["pos_id"])
+
+        if len(self.id) < 1:
+            self.pos_id = 1
+        else:
+            self.pos_id = list(self.id)[-1] + 1
 
         self.insert_query = """insert into positions (pos_id, date, portfolio_code, strategy_code, 
                                                       quantity, trade_price, sec_id) 
                                        values ('{pos_id}','{date}', '{portfolio_code}', '{strategy_code}', 
-                                       '{quantity}', '{trade_price}', '{sec_id}')""".format(pos_id=int(self.id) + 1,
+                                       '{quantity}', '{trade_price}', '{sec_id}')""".format(pos_id=self.pos_id,
                                                                                             date=date,
                                                                                             portfolio_code=portfolio_code,
                                                                                             strategy_code=strategy_code,

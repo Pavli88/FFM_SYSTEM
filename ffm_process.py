@@ -59,6 +59,7 @@ class FfmProcess:
             self.portdate = datetime.date(datetime(year=int(self.portdate1[0:4]),
                                                    month=int(self.portdate1[4:6]),
                                                    day=int(self.portdate1[6:8])))
+
             self.weekday = self.portdate.weekday()
 
         else:
@@ -100,6 +101,8 @@ class FfmProcess:
 
         self.query_date0 = str(self.portdate)
         self.query_date = self.query_date0[0:4] + self.query_date0[5:7] + self.query_date0[8:10]
+        self.query_date_1 = str(self.portdate+timedelta(days=-1))
+        self.query_date_1 = self.query_date_1[0:4] + self.query_date_1[5:7] + self.query_date_1[8:10]
 
         # SQL data base connection session start
 
@@ -128,6 +131,7 @@ class FfmProcess:
         print("Current date: " + self.date0)
         print("Portfolio date: " + str(self.portdate))
         print("SQL query date: " + str(self.query_date))
+        print("SQL query date -1: " + str(self.query_date_1))
         print("Environment: " + str(self.data_base))
         print("")
 
@@ -160,7 +164,7 @@ class FfmProcess:
         for portfolio, port_id in zip(list(self.portfolios["portfolio_name"]), list(self.portfolios["portfolio_id"])):
 
             print("Clearing out previous position records as of " +
-                  str(self.query_date) + " for " + str(list(self.portfolios["portfolio_name"])[0]))
+                  str(self.query_date) + " for " + str(portfolio))
 
             self.sql_connection.insert_data(insert_query="""delete from positions 
                                                                     where date = '{date}' 
@@ -172,8 +176,10 @@ class FfmProcess:
             self.trades = self.sql_connection.select_data(select_query="""select*from trade t, portfolios p 
                                                                           where t.portfolio_code = p.portfolio_id 
                                                                           and t.status = 'OPEN'
-                                                                          and p.portfolio_name='{port_name}'""".format(
-                                                                          port_name=portfolio))
+                                                                          and p.portfolio_name='{port_name}'
+                                                                          and t.date <= '{date}'""".format(
+                                                                                                  port_name=portfolio,
+                                                                                                  date=self.query_date))
 
             print("Processing trades...")
 
@@ -238,9 +244,13 @@ class FfmProcess:
                                                                          from positions p, sec_info s 
                                                                          where p.sec_id = s.sec_id 
                                                                 and p.date = '{date}'""".format(date=self.query_date))
-
+        print(self.all_positions)
         self.all_cash_flow = self.sql_connection.select_data(select_query="""select*from cash_flow 
                                                                   where date = '{date}'""".format(date=self.query_date))
+
+        self.all_cash_flow_1 = self.sql_connection.select_data(select_query="""select*from cash_flow 
+                                                                          where date = '{date}'""".format(
+                                                                                                date=self.query_date_1))
 
         if args.portfolio == "ALL":
 
@@ -269,54 +279,78 @@ class FfmProcess:
                                                                                                 port_code=port_id))
 
         print("")
+        print("-------------------------------")
+        print("  Starting NAV calculations   ")
+        print("--------------------------------")
+        print("")
 
         for port_id in list(self.portfolios["portfolio_id"]):
 
+            print("***Quering out positions for " + str(port_id) + " as of " + str(self.query_date)+str("***"))
+            print("")
+
             self.positions = self.all_positions[self.all_positions["portfolio_code"] == port_id]
 
-            print("Quering out positions for "+str(port_id)+" as of "+str(self.query_date))
+            print(self.positions)
+            print("")
 
-            market_value = 0
+            self.market_value = 0
 
             for quantity, ticker in zip(list(self.positions["quantity"]), list(self.positions["ticker"])):
 
                 if (ticker == "MRGN") or (ticker == "CLTR"):
-                    price = 100
+                    self.price = 100
                 else:
-                    price = OnlineData(ticker=ticker).last_eq_price()
-                    price = list(price["price"])[0]
+                    self.price = OnlineData(ticker=ticker).last_eq_price()
+                    self.price = list(self.price["price"])[0]
 
-                market_value = market_value + (quantity*price)
+                self.market_value = self.market_value + (quantity*self.price)
 
-            market_value = round(market_value, 2)
+                print("MV: " + str(ticker) + " " + str(round(quantity * self.price, 2))+" Cumulative MV: "+str(self.market_value))
 
-            self.cash_flow = self.all_cash_flow[self.all_cash_flow["portfolio_code"] == port_id]
+            self.market_value = round(self.market_value, 2)
+
+            print("------------")
+            print("Holding NAV: " + str(self.market_value))
+            print("------------")
+            print("")
 
             print("Calculating cash balance...")
 
-            cash_flow_balance = sum(list(self.cash_flow["ammount"]))
+            self.cash_flow = self.all_cash_flow[self.all_cash_flow["portfolio_code"] == port_id]
+            self.cash_flow_1 = self.all_cash_flow_1[self.all_cash_flow_1["portfolio_code"] == port_id]
 
+            cash_flow_balance = sum(list(self.cash_flow["ammount"])) + sum(list(self.cash_flow_1["ammount"]))
+
+            print("T-2 Cash Balance: "+str(sum(list(self.cash_flow_1["ammount"]))))
+            print("T-1 Cash Balance: "+str(sum(list(self.cash_flow["ammount"]))))
+            print("------------")
             print("Cash balance -> " + str(cash_flow_balance))
+            print("------------")
+            print("")
 
             self.id = self.sql_connection.select_data(select_query="""select*from portfolio_nav""")
 
+            print("----------")
+            print("Total NAV: " + str(self.market_value + cash_flow_balance))
+            print("----------")
             print("Writing calculated portfolio NAV data to database.")
-            print("Holding NAV: " + str(market_value))
-            print("Cash Flow balance: " + str(cash_flow_balance))
-            print("Total NAV: " + str(market_value+cash_flow_balance))
             print("")
+
+            if len(self.id["nav_id"]) < 1:
+                self.nav_id = 1
+            else:
+                self.nav_id = list(self.id["nav_id"])[-1]+1
 
             self.sql_connection.insert_data(insert_query="""insert into portfolio_nav (date, portfolio_code, 
                                                             holding_nav, nav_id, cash_balance, total_nav) 
                                                             values ('{date}', '{port_code}', '{holding_nav}', 
                             '{nav_id}', '{cash_bal}', '{tot_nav}')""".format(date=self.query_date,
                                                                              port_code=port_id,
-                                                                             holding_nav=market_value,
-                                                                             nav_id=len(list(self.id["nav_id"]))+1,
+                                                                             holding_nav=self.market_value,
+                                                                             nav_id=self.nav_id,
                                                                              cash_bal=cash_flow_balance,
-                                                                             tot_nav=market_value+cash_flow_balance))
-
-
+                                                                             tot_nav=self.market_value+cash_flow_balance))
 
     def security_return_calc(self):
         pass
