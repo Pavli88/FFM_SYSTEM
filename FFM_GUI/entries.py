@@ -595,6 +595,10 @@ class TradeEntry(object):
 
     def __init__(self, Dialog, data_base, user_name, password, portfolio_name):
 
+        pd.set_option('display.max_rows', 500)
+        pd.set_option('display.max_columns', 500)
+        pd.set_option('display.width', 1000)
+
         self.data_base = data_base
         self.user_name = user_name
         self.password = password
@@ -605,6 +609,10 @@ class TradeEntry(object):
                                  where portfolio_name = '{portfolio_name}')""".format(portfolio_name=portfolio_name))
         self.portfolio_data = self.db_connection.select_data(select_query="""select*from portfolios 
                                                where portfolio_name = '{portfolio}'""".format(portfolio=portfolio_name))
+
+        self.collaterals = self.db_connection.select_data(select_query="""select*from sec_info 
+                                                                          where type = 'LOAN' 
+                                                                          and ticker in ('MRGN', 'CLTR')""")
 
         self.db_connection.close_connection()
 
@@ -872,9 +880,53 @@ class TradeEntry(object):
         self.sec_data = self.db_connection.select_data(select_query="""select * from trade 
                                where trade_id = '{trd_id}'""".format(trd_id=self.tableWidget.selectedItems()[0].text()))
         self.db_connection.close_connection()
+        print(self.sec_data)
 
         self.last_price = OnlineData(ticker=list(self.sec_data["ticker"])[0]).last_eq_price()
         self.last_price = list(self.last_price["price"])[0]
+
+        if list(self.sec_data["side"])[0] == "BUY":
+            self.side = "SELL"
+        elif list(self.sec_data["side"])[0] == "SELL":
+            self.side = "BUY"
+
+        self.quantity = list(self.sec_data["quantity"])[0] * -1
+        self.margin = list(self.sec_data["margin_bal"])[0] * -1
+
+        Entries(data_base=self.data_base,
+                user_name=self.user_name,
+                password=self.password).trade(date=self.dateEdit.text().replace(". ", "").replace(".", ""),
+                                              portfolio_code=list(self.sec_data["portfolio_code"])[0],
+                                              strategy_code=list(self.sec_data["strategy_code"])[0],
+                                              side=self.side,
+                                              quantity=self.quantity,
+                                              trade_price=float(self.last_price),
+                                              leverage="No",
+                                              sl="No",
+                                              sl_level=0,
+                                              sec_id=list(self.sec_data["sec_id"])[0],
+                                              leverage_perc=0,
+                                              ticker=list(self.sec_data["ticker"])[0],
+                                              margin_bal=self.margin)
+
+        # Cashflow
+
+        Entries(data_base=self.data_base,
+                user_name=self.user_name,
+                password=self.password).cash_flow(port_code=list(self.sec_data["portfolio_code"])[0],
+                                                  ammount=list(self.sec_data["quantity"])[0] * float(self.last_price),
+                                                  cft="INFLOW",
+                                                  date=self.dateEdit.text().replace(". ", "").replace(".", ""),
+                                                  currency=list(self.portfolio_data["currency"])[0],
+                                                  comment="Trade",
+                                                  client=self.user_name)
+
+        MsgBoxes().info_box(message="Trade has been closed !", title="Notification")
+
+        self.load_strat_desc()
+
+        """
+        
 
         Entries(data_base=self.data_base,
                 user_name=self.user_name,
@@ -893,7 +945,7 @@ class TradeEntry(object):
 
         MsgBoxes().info_box(message="Trade has been closed !", title="Notification")
 
-        self.load_strat_desc()
+        self.load_strat_desc()"""
 
     def enter_trade(self, side):
 
@@ -907,6 +959,22 @@ class TradeEntry(object):
         else:
             self.leverage = "No"
 
+        if side == "SELL":
+            self.quantity = int(self.text_input_2.text()) * -1
+        else:
+            self.quantity = int(self.text_input_2.text())
+
+        if self.leverage == "Yes":
+
+            self.margin = int(self.text_input_2.text())*float(self.last_price)*-1*(float(self.doubleSpinBox.value())/100)
+
+            self.cash_flow_ammount = int(self.text_input_2.text()) * float(self.last_price) * -1 * \
+                                     ((100 - float(self.doubleSpinBox.value())) / 100)
+        else:
+            self.margin = 0
+
+            self.cash_flow_ammount = int(self.text_input_2.text()) * float(self.last_price) * -1
+
         if len(self.text_input_3.text()) > 0:
             self.sl = "Yes"
             self.sl_level = self.text_input_3.text()
@@ -916,25 +984,30 @@ class TradeEntry(object):
             elif (side == "SELL") and (float(self.last_price) > float(self.sl_level)):
                 MsgBoxes().info_box(message="SELL Trade. SL Price is smaller than trade price !", title="Notification")
             else:
+
+                # Trade Entry
+
                 Entries(data_base=self.data_base,
                         user_name=self.user_name,
                         password=self.password).trade(date=self.dateEdit.text().replace(". ", "").replace(".", ""),
                                                       portfolio_code=list(self.strat_code_query["portfolio_code"])[0],
                                                       strategy_code=list(self.strat_code_query["strategy_code"])[0],
                                                       side=side,
-                                                      quantity=int(self.text_input_2.text()),
+                                                      quantity=self.quantity,
                                                       trade_price=float(self.last_price),
                                                       leverage=self.leverage,
                                                       sl=self.sl,
                                                       sl_level=float(self.sl_level),
                                                       sec_id=list(self.sec_data["sec_id"])[0],
                                                       leverage_perc=self.doubleSpinBox.value(),
-                                                      ticker=list(self.sec_data["ticker"])[0])
+                                                      ticker=list(self.sec_data["ticker"])[0],
+                                                      margin_bal=self.margin)
+
 
                 Entries(data_base=self.data_base,
                         user_name=self.user_name,
                         password=self.password).cash_flow(port_code=list(self.strat_code_query["portfolio_code"])[0],
-                                                          ammount=int(self.text_input_2.text())*float(self.last_price)*-1,
+                                                          ammount=self.cash_flow_ammount,
                                                           cft="OUTFLOW",
                                                           date=self.dateEdit.text().replace(". ", "").replace(".", ""),
                                                           currency=list(self.portfolio_data["currency"])[0],
@@ -949,25 +1022,30 @@ class TradeEntry(object):
             self.sl = "No"
             self.sl_level = 0
 
+            # Trade Entry
+
             Entries(data_base=self.data_base,
                     user_name=self.user_name,
                     password=self.password).trade(date=self.dateEdit.text().replace(". ", "").replace(".", ""),
                                                   portfolio_code=list(self.strat_code_query["portfolio_code"])[0],
                                                   strategy_code=list(self.strat_code_query["strategy_code"])[0],
                                                   side=side,
-                                                  quantity=int(self.text_input_2.text()),
+                                                  quantity=self.quantity,
                                                   trade_price=float(self.last_price),
                                                   leverage=self.leverage,
                                                   sl=self.sl,
                                                   sl_level=float(self.sl_level),
                                                   sec_id=list(self.sec_data["sec_id"])[0],
                                                   leverage_perc=self.doubleSpinBox.value(),
-                                                  ticker=list(self.sec_data["ticker"])[0])
+                                                  ticker=list(self.sec_data["ticker"])[0],
+                                                  margin_bal=int(self.text_input_2.text())*float(self.last_price)*-1*(float(self.doubleSpinBox.value())/100))
+
+            # Cash flow side of the trade
 
             Entries(data_base=self.data_base,
                     user_name=self.user_name,
                     password=self.password).cash_flow(port_code=list(self.strat_code_query["portfolio_code"])[0],
-                                                      ammount=int(self.text_input_2.text()) * float(self.last_price)*-1,
+                                                      ammount=self.cash_flow_ammount,
                                                       cft="OUTFLOW",
                                                       date=self.dateEdit.text().replace(". ", "").replace(".", ""),
                                                       currency=list(self.portfolio_data["currency"])[0],

@@ -44,6 +44,10 @@ class FfmProcess:
 
     def __init__(self):
 
+        pd.set_option('display.max_rows', 500)
+        pd.set_option('display.max_columns', 500)
+        pd.set_option('display.width', 1000)
+
         # Date definition
 
         self.date0 = time.strftime("%Y:%m:%d")
@@ -163,6 +167,10 @@ class FfmProcess:
 
         for portfolio, port_id in zip(list(self.portfolios["portfolio_name"]), list(self.portfolios["portfolio_id"])):
 
+            print("----------")
+            print("PORTFOLIO:", str(portfolio))
+            print("----------")
+            print("")
             print("Clearing out previous position records as of " +
                   str(self.query_date) + " for " + str(portfolio))
 
@@ -171,68 +179,115 @@ class FfmProcess:
                                    and portfolio_code = '{port_code}'""".format(date=self.query_date,
                                                                                 port_code=port_id))
 
-            print("Quering out trades for "+str(portfolio))
+            print("")
+            print("T-2 POSITIONS:")
 
-            self.trades = self.sql_connection.select_data(select_query="""select*from trade t, portfolios p 
-                                                                          where t.portfolio_code = p.portfolio_id 
-                                                                          and t.status = 'OPEN'
-                                                                          and p.portfolio_name='{port_name}'
-                                                                          and t.date <= '{date}'""".format(
-                                                                                                  port_name=portfolio,
+            self.t_min_one_pos = self.sql_connection.select_data(select_query="""select p.pos_id, p.sec_id, 
+                                                            p.portfolio_code, p.strategy_code, p.open_bal, p.close_bal, 
+                                                            s.name, s.ticker from positions p, sec_info s
+                                                            where p.sec_id = s.sec_id 
+                                                            and p.date = '{date_1}'""".format(date_1=self.query_date_1))
+
+            print(self.t_min_one_pos)
+            print("")
+            print("Quering out new trades...")
+            print("NEW TRADES:")
+
+            #print(self.t_min_one_pos)
+            self.trades = self.sql_connection.select_data(select_query="""select*from trade 
+                                                                          where date = '{date}' 
+                                                                          and portfolio_code = '{port_id}'""".format(
+                                                                                                  port_id=port_id,
                                                                                                   date=self.query_date))
+            print(self.trades)
+            print("")
 
-            print("Processing trades...")
+            # Processing existing positions
 
-            for trade in self.trades.index.values:
+            print("PROCESSING EXISTING POSITIONS AND CALCULATING POSITION BALANCE")
+            print("")
 
-                self.trade = self.trades.iloc[trade]
+            for pos in range(len(self.t_min_one_pos["pos_id"])):
 
-                if self.trade["side"] == "BUY":
-                    self.quantity = self.trade["quantity"]
+                self.pos = self.t_min_one_pos.iloc[pos]
+                self.trade = self.trades[self.trades["sec_id"] == self.pos["sec_id"]]
+                self.close_bal = sum(list(self.trade["quantity"]))
+
+                if self.pos["name"] == "Margin":
+                    pass
                 else:
-                    self.quantity = self.trade["quantity"]*-1
+                    self.new_bal = self.close_bal
 
-                print("Date:", self.query_date,
-                      "Port Code:", self.trade["portfolio_code"],
-                      "Strat Code", self.trade["strategy_code"],
-                      "Quantity:", self.quantity,
-                      "Trade Price:", self.trade["trade_price"],
-                      "Sec ID:", self.trade["sec_id"])
-
-                Entries(data_base=self.data_base,
-                        user_name=args.db_user_name,
-                        password=args.db_password).positions(date=self.query_date,
-                                                             portfolio_code=self.trade["portfolio_code"],
-                                                             strategy_code=self.trade["strategy_code"],
-                                                             quantity=self.quantity,
-                                                             trade_price=self.trade["trade_price"],
-                                                             sec_id=self.trade["sec_id"])
-
-                if self.trade["side"] == "SELL":
+                    print("Security:", self.pos["name"])
+                    print("New trade total quantity:", self.close_bal)
+                    print("T-2 balance:", self.pos["close_bal"])
+                    print("Close balance:", self.new_bal+self.pos["close_bal"])
+                    print("Writing data to data base")
 
                     Entries(data_base=self.data_base,
                             user_name=args.db_user_name,
                             password=args.db_password).positions(date=self.query_date,
-                                                                 portfolio_code=self.trade["portfolio_code"],
-                                                                 strategy_code=self.trade["strategy_code"],
-                                                                 quantity=(self.quantity*self.trade["trade_price"])*-1/100,
-                                                                 trade_price=100,
-                                                                 sec_id=list(self.collaterals["sec_id"])[1])
+                                                                 portfolio_code=self.pos["portfolio_code"],
+                                                                 strategy_code=self.pos["strategy_code"],
+                                                                 open_bal=self.pos["close_bal"],
+                                                                 close_bal=self.new_bal+self.pos["close_bal"],
+                                                                 sec_id=self.pos["sec_id"])
+                    print("")
 
-                if self.trade["leverage"] == "Yes":
+            print("PROCESSING NEW TRADES AND CALCULATING POSITION BALANCE")
+            print("")
 
-                    print("Leveraged trade")
+            for trade in range(len(self.trades["trade_id"])):
+
+                self.tr = self.trades.iloc[trade]
+                self.ps = self.t_min_one_pos[self.t_min_one_pos["sec_id"] == self.tr["sec_id"]]
+
+                if len(list(self.ps["pos_id"])) >= 1:
+                    pass
+                else:
+                    print("Security:", self.tr["ticker"])
+                    print("T-2 balance: 0")
+                    print("Close balance:", self.tr["quantity"])
+                    print("Margin:", self.tr["margin_bal"])
+                    print("Writing data to data base")
 
                     Entries(data_base=self.data_base,
                             user_name=args.db_user_name,
                             password=args.db_password).positions(date=self.query_date,
-                                                                 portfolio_code=self.trade["portfolio_code"],
-                                                                 strategy_code=self.trade["strategy_code"],
-                                                                 quantity=(self.trade["trade_price"]*self.trade["quantity"])*(self.trade["leverage_perc"]/100)/100,
-                                                                 trade_price=100,
-                                                                 sec_id=list(self.collaterals["sec_id"])[0])
+                                                                 portfolio_code=self.tr["portfolio_code"],
+                                                                 strategy_code=self.tr["strategy_code"],
+                                                                 open_bal=0,
+                                                                 close_bal=self.tr["quantity"],
+                                                                 sec_id=self.tr["sec_id"])
+
+                    print("")
+
+            print("MARGIN POSITION CALCULATION")
+            print("")
+
+            self.margin_filter = self.t_min_one_pos[self.t_min_one_pos["name"] == "Margin"]
+
+            if len(list(self.margin_filter["name"])) == 0:
+                self.open_margin = 0
+            else:
+                self.open_margin = list(self.margin_filter["close_bal"])[0]
+
+            print("New trade total quantity:", sum(list(self.trades["margin_bal"])))
+            print("T-2 balance:", self.open_margin)
+            print("Close balance:", sum(list(self.trades["margin_bal"]))+self.open_margin)
+            print("Writing data to data base")
+
+            Entries(data_base=self.data_base,
+                    user_name=args.db_user_name,
+                    password=args.db_password).positions(date=self.query_date,
+                                                         portfolio_code=list(self.trades["portfolio_code"])[0],
+                                                         strategy_code=list(self.trades["strategy_code"])[0],
+                                                         open_bal=self.open_margin,
+                                                         close_bal=sum(list(self.trades["margin_bal"]))+self.open_margin,
+                                                         sec_id=list(self.collaterals["sec_id"])[0])
 
             print("")
+
 
     def nav_calc(self):
 

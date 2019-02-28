@@ -245,6 +245,11 @@ class Entries(SQL):
         self.id = list(self.select_data("""select cash_id 
                                           from cash_flow""")["cash_id"])
 
+        if len(self.id) < 1:
+            self.cf_id = 1
+        else:
+            self.cf_id = list(self.id)[-1] + 1
+
         self.insert_query = """insert into cash_flow (cash_id, portfolio_code, 
                                                       ammount, cash_flow_type, 
                                                       date, currency,
@@ -253,7 +258,7 @@ class Entries(SQL):
                                values ('{cash_id}', '{port_code}', 
                                        '{ammount}', '{cft}', 
                                        '{date}', '{currency}',
-                                       '{comment}', '{client}')""".format(cash_id=int(self.id[-1]) + 1,
+                                       '{comment}', '{client}')""".format(cash_id=self.cf_id,
                                                                           port_code=port_code,
                                                                           ammount=ammount,
                                                                           cft=cft,
@@ -383,7 +388,7 @@ class Entries(SQL):
     def trade(self, date, portfolio_code, strategy_code,
               side, quantity, trade_price, leverage,
               sl, sl_level, sec_id,
-              leverage_perc, ticker):
+              leverage_perc, ticker, margin_bal):
 
         """
         Only for trade booking into trade table. Adding to previous open position is treated as a new trade with
@@ -391,8 +396,14 @@ class Entries(SQL):
         :return:
         """
 
-        self.id = len(self.select_data("""select trade_id
+        self.id = list(self.select_data("""select trade_id
                                           from trade""")["trade_id"])
+
+        if len(self.id) < 1:
+            self.trd_id = 1
+        else:
+            self.trd_id = list(self.id)[-1] + 1
+
         try:
             self.trd_num = list(self.select_data("""select trade_num
                                                     from trade""")["trade_num"])[-1]
@@ -403,7 +414,7 @@ class Entries(SQL):
         self.insert_query = """insert into trade (trade_id, date, trade_num, portfolio_code, 
                                                   strategy_code, side, quantity, trade_price, 
                                                   leverage, status, sl, sl_level,
-                                                  sec_id, leverage_perc, action, ticker)
+                                                  sec_id, leverage_perc, action, ticker, margin_bal)
 
                                values ('{trade_id}',  '{date}', 
                                        '{trade_num}','{portfolio_code}', 
@@ -412,22 +423,23 @@ class Entries(SQL):
                                        '{leverage}', '{status}',
                                        '{sl}', '{sl_level}',
                                        '{sec_id}', '{leverage_perc}',
-                                       '{action}', '{ticker}')""".format(trade_id=int(self.id) + 1,
-                                                                         date=date,
-                                                                         trade_num=int(self.trd_num) + 1,
-                                                                         portfolio_code=portfolio_code,
-                                                                         strategy_code=strategy_code,
-                                                                         side=side,
-                                                                         quantity=quantity,
-                                                                         trade_price=trade_price,
-                                                                         leverage=leverage,
-                                                                         status="OPEN",
-                                                                         sl=sl,
-                                                                         sl_level=sl_level,
-                                                                         sec_id=sec_id,
-                                                                         leverage_perc=leverage_perc,
-                                                                         action="LIVE",
-                                                                         ticker=ticker)
+                                       '{action}', '{ticker}','{mb}')""".format(trade_id=self.trd_id,
+                                                                                date=date,
+                                                                                 trade_num=int(self.trd_num) + 1,
+                                                                                 portfolio_code=portfolio_code,
+                                                                                 strategy_code=strategy_code,
+                                                                                 side=side,
+                                                                                 quantity=quantity,
+                                                                                 trade_price=trade_price,
+                                                                                 leverage=leverage,
+                                                                                 status="OPEN",
+                                                                                 sl=sl,
+                                                                                 sl_level=sl_level,
+                                                                                 sec_id=sec_id,
+                                                                                 leverage_perc=leverage_perc,
+                                                                                 action="LIVE",
+                                                                                 ticker=ticker,
+                                                                                 mb=margin_bal)
 
         self.insert_data(self.insert_query)
         self.close_connection()
@@ -527,7 +539,7 @@ class Entries(SQL):
 
         print("Portfolio connection was created successfully!")
 
-    def positions(self, date, portfolio_code, strategy_code, quantity, trade_price, sec_id):
+    def positions(self, date, portfolio_code, strategy_code, open_bal, close_bal, sec_id):
 
         """
         Positions entry
@@ -548,15 +560,15 @@ class Entries(SQL):
             self.pos_id = list(self.id)[-1] + 1
 
         self.insert_query = """insert into positions (pos_id, date, portfolio_code, strategy_code, 
-                                                      quantity, trade_price, sec_id) 
+                                                      open_bal, close_bal, sec_id) 
                                        values ('{pos_id}','{date}', '{portfolio_code}', '{strategy_code}', 
-                                       '{quantity}', '{trade_price}', '{sec_id}')""".format(pos_id=self.pos_id,
-                                                                                            date=date,
-                                                                                            portfolio_code=portfolio_code,
-                                                                                            strategy_code=strategy_code,
-                                                                                            quantity=quantity,
-                                                                                            trade_price=trade_price,
-                                                                                            sec_id=sec_id)
+                                       '{open_bal}', '{close_bal}', '{sec_id}')""".format(pos_id=self.pos_id,
+                                                                                          date=date,
+                                                                                          portfolio_code=portfolio_code,
+                                                                                          strategy_code=strategy_code,
+                                                                                          open_bal=open_bal,
+                                                                                          close_bal=close_bal,
+                                                                                          sec_id=sec_id)
 
         self.insert_data(self.insert_query)
         self.close_connection()
