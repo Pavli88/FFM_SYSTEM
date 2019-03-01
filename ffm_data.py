@@ -573,7 +573,6 @@ class Entries(SQL):
         self.insert_data(self.insert_query)
         self.close_connection()
 
-
 if __name__ == "__main__":
 
     pass

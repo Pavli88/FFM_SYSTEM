@@ -519,14 +519,26 @@ class EntryWindows:
 
                 if self.cbox_2.currentText() == "FUNDING":
 
+                    self.id = SQL(data_base=self.db,
+                                  user_name=self.user_name,
+                                  password=self.password).select_data(select_query="""select nav_id from portfolio_nav""")
+
+                    self.id = list(self.id["nav_id"])
+
+                    if len(self.id) < 1:
+                        self.nav_id = 1
+                    else:
+                        self.nav_id = list(self.id)[-1] + 1
+
                     SQL(data_base=self.db,
                         user_name=self.user_name,
                         password=self.password).insert_data(insert_query="""insert into portfolio_nav (date, 
                                                                             portfolio_code, nav_id, cash_balance) 
-                                                                            values ('{date}', '{port_code}', 1, 
+                                                                            values ('{date}', '{port_code}', '{nav_id}', 
                                 '{cash_bal}')""".format(date=self.dateEdit.text().replace(". ", "").replace(".", ""),
                                                         port_code=self.port_code,
-                                                        cash_bal=self.cash_flow_ammount))
+                                                        cash_bal=self.cash_flow_ammount,
+                                                        nav_id=self.nav_id))
 
                 self.msg_box(message="""{ammount} {currency} was booked for {port}""".format(ammount=self.text_input_1.text(),
                                                                                              currency=self.label_5.text(),
@@ -924,28 +936,6 @@ class TradeEntry(object):
         MsgBoxes().info_box(message="Trade has been closed !", title="Notification")
 
         self.load_strat_desc()
-
-        """
-        
-
-        Entries(data_base=self.data_base,
-                user_name=self.user_name,
-                password=self.password).trade_modify(trade_id=self.tableWidget.selectedItems()[0].text(),
-                                                     last_price=self.last_price)
-
-        Entries(data_base=self.data_base,
-                user_name=self.user_name,
-                password=self.password).cash_flow(port_code=list(self.sec_data["portfolio_code"])[0],
-                                                  ammount=list(self.sec_data["quantity"])[0] * float(self.last_price),
-                                                  cft="INFLOW",
-                                                  date=self.dateEdit.text().replace(". ", "").replace(".", ""),
-                                                  currency=list(self.portfolio_data["currency"])[0],
-                                                  comment="Trade",
-                                                  client=self.user_name)
-
-        MsgBoxes().info_box(message="Trade has been closed !", title="Notification")
-
-        self.load_strat_desc()"""
 
     def enter_trade(self, side):
 
