@@ -626,10 +626,15 @@ class TradeEntry(object):
                                                                           where type = 'LOAN' 
                                                                           and ticker in ('MRGN', 'CLTR')""")
 
+        self.cash_flow_data = self.db_connection.select_data(select_query="""select*from cash_flow 
+                                                                             where portfolio_code = {port_code}
+                                                                             """.format(
+                                                              port_code=list(self.portfolio_data["portfolio_id"])[0]))
+
         self.db_connection.close_connection()
 
         Dialog.setObjectName("Dialog")
-        Dialog.resize(1061, 511)
+        Dialog.resize(1188, 551)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -638,8 +643,12 @@ class TradeEntry(object):
         Dialog.setWindowTitle("Trade Entry - " + portfolio_name)
 
         self.groupBox = QtWidgets.QGroupBox(Dialog)
-        self.groupBox.setGeometry(QtCore.QRect(20, 10, 591, 211))
-        self.groupBox.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.groupBox.setGeometry(QtCore.QRect(9, 9, 580, 271))
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.groupBox.sizePolicy().hasHeightForWidth())
+        self.groupBox.setSizePolicy(sizePolicy)
         self.groupBox.setObjectName("groupBox")
 
         self.gridLayout_4 = QtWidgets.QGridLayout(self.groupBox)
@@ -650,6 +659,9 @@ class TradeEntry(object):
 
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName("gridLayout")
+
+        self.gridLayout_7 = QtWidgets.QGridLayout()
+        self.gridLayout_7.setObjectName("gridLayout_7")
 
         self.label_1 = QtWidgets.QLabel(self.groupBox)
         self.label_1.setObjectName("label_1")
@@ -680,8 +692,11 @@ class TradeEntry(object):
         self.label_5 = QtWidgets.QLabel(self.groupBox)
         self.label_5.setObjectName("label_5")
         self.gridLayout_2.addWidget(self.label_5, 1, 0, 1, 1)
+
         self.text_input_2 = QtWidgets.QLineEdit(self.groupBox)
         self.text_input_2.setObjectName("text_input_2")
+        self.text_input_2.textChanged.connect(self.calculate_notional)
+
         self.gridLayout_2.addWidget(self.text_input_2, 1, 1, 1, 2)
         self.label_6 = QtWidgets.QLabel(self.groupBox)
         self.label_6.setObjectName("label_6")
@@ -706,6 +721,7 @@ class TradeEntry(object):
         self.label_7 = QtWidgets.QLabel(self.groupBox)
         self.label_7.setObjectName("label_7")
         self.gridLayout_2.addWidget(self.label_7, 4, 0, 1, 1)
+
         self.doubleSpinBox = QtWidgets.QDoubleSpinBox(self.groupBox)
         self.doubleSpinBox.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.doubleSpinBox.setAlignment(QtCore.Qt.AlignCenter)
@@ -713,6 +729,7 @@ class TradeEntry(object):
         self.doubleSpinBox.setSingleStep(5.0)
         self.doubleSpinBox.setObjectName("doubleSpinBox")
         self.gridLayout_2.addWidget(self.doubleSpinBox, 4, 1, 1, 1)
+        self.doubleSpinBox.valueChanged.connect(self.calculate_margin)
 
         self.create_button = QtWidgets.QPushButton(self.groupBox)
         self.create_button.setObjectName("create_button")
@@ -735,11 +752,13 @@ class TradeEntry(object):
         self.gridLayout_2.addWidget(self.create_button_2, 5, 2, 1, 1)
         self.gridLayout_3.addLayout(self.gridLayout_2, 0, 1, 1, 1)
         self.gridLayout_4.addLayout(self.gridLayout_3, 0, 0, 1, 1)
+
         self.groupBox_2 = QtWidgets.QGroupBox(Dialog)
-        self.groupBox_2.setGeometry(QtCore.QRect(20, 230, 1021, 261))
+        self.groupBox_2.setGeometry(QtCore.QRect(9, 286, 1170, 256))
         self.groupBox_2.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
         self.groupBox_2.setFlat(False)
         self.groupBox_2.setObjectName("groupBox_2")
+
         self.widget = QtWidgets.QWidget(self.groupBox_2)
         self.widget.setGeometry(QtCore.QRect(10, 32, 1001, 221))
         self.widget.setObjectName("widget")
@@ -759,7 +778,8 @@ class TradeEntry(object):
         self.gridLayout_5.addWidget(self.create_button_5, 2, 0, 1, 1)
         self.gridLayout_6.addLayout(self.gridLayout_5, 0, 0, 1, 1)
 
-        self.tableWidget = QtWidgets.QTableWidget(self.widget)
+        self.tableWidget = QtWidgets.QTableWidget(self.groupBox_2)
+        self.tableWidget.setGeometry(QtCore.QRect(117, 31, 1033, 201))
         self.tableWidget.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.tableWidget.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.tableWidget.setObjectName("tableWidget")
@@ -811,8 +831,9 @@ class TradeEntry(object):
         self.tableWidget.setSortingEnabled(__sortingEnabled)
 
         self.gridLayout_6.addWidget(self.tableWidget, 0, 1, 1, 1)
+        self.gridLayout_7.addWidget(self.groupBox, 0, 0, 1, 1)
         self.groupBox_3 = QtWidgets.QGroupBox(Dialog)
-        self.groupBox_3.setGeometry(QtCore.QRect(620, 10, 421, 211))
+        self.groupBox_3.setGeometry(QtCore.QRect(595, 9, 584, 271))
         font = QtGui.QFont()
         font.setBold(False)
         font.setWeight(50)
@@ -820,19 +841,22 @@ class TradeEntry(object):
         self.groupBox_3.setFlat(False)
         self.groupBox_3.setObjectName("groupBox_3")
         self.label_9 = QtWidgets.QLabel(self.groupBox_3)
-        self.label_9.setGeometry(QtCore.QRect(10, 110, 401, 21))
-        self.label_9.setObjectName("label_9")
-        self.label_11 = QtWidgets.QLabel(self.groupBox_3)
-        self.label_11.setGeometry(QtCore.QRect(10, 30, 401, 21))
-        self.label_11.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
-        self.label_11.setObjectName("label_11")
-        self.label_12 = QtWidgets.QLabel(self.groupBox_3)
-        self.label_12.setGeometry(QtCore.QRect(10, 130, 221, 21))
+        self.label_9.setGeometry(QtCore.QRect(10, 170, 141, 21))
         font = QtGui.QFont()
-        font.setPointSize(10)
-        font.setItalic(True)
-        self.label_12.setFont(font)
-        self.label_12.setObjectName("label_12")
+        font.setBold(True)
+        font.setWeight(75)
+        self.label_9.setFont(font)
+        self.label_9.setObjectName("label_9")
+
+        self.label_11 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_11.setGeometry(QtCore.QRect(10, 30, 291, 21))
+        font = QtGui.QFont()
+        font.setBold(True)
+        font.setWeight(75)
+        self.label_11.setFont(font)
+        self.label_11.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
+        self.label_11.setObjectName("label_11")
+
         self.label_13 = QtWidgets.QLabel(self.groupBox_3)
         self.label_13.setGeometry(QtCore.QRect(10, 50, 401, 61))
         font = QtGui.QFont()
@@ -842,12 +866,219 @@ class TradeEntry(object):
         self.label_13.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
         self.label_13.setObjectName("label_13")
         self.label_14 = QtWidgets.QLabel(self.groupBox_3)
-        self.label_14.setGeometry(QtCore.QRect(230, 130, 181, 21))
+        self.label_14.setGeometry(QtCore.QRect(320, 50, 91, 21))
         font = QtGui.QFont()
         font.setPointSize(10)
         font.setItalic(True)
         self.label_14.setFont(font)
         self.label_14.setObjectName("label_14")
+        self.label_14.setText("Full Name:")
+
+        self.label_16 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_16.setGeometry(QtCore.QRect(320, 30, 211, 21))
+        font = QtGui.QFont()
+        font.setBold(True)
+        font.setWeight(75)
+        self.label_16.setFont(font)
+        self.label_16.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
+        self.label_16.setObjectName("label_16")
+        self.label_17 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_17.setGeometry(QtCore.QRect(320, 70, 91, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_17.setFont(font)
+        self.label_17.setObjectName("label_17")
+        self.label_18 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_18.setGeometry(QtCore.QRect(320, 90, 91, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_18.setFont(font)
+        self.label_18.setObjectName("label_18")
+        self.label_19 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_19.setGeometry(QtCore.QRect(320, 110, 91, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_19.setFont(font)
+        self.label_19.setObjectName("label_19")
+        self.label_20 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_20.setGeometry(QtCore.QRect(320, 130, 91, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_20.setFont(font)
+        self.label_20.setObjectName("label_20")
+        self.label_21 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_21.setGeometry(QtCore.QRect(320, 150, 91, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_21.setFont(font)
+        self.label_21.setObjectName("label_21")
+        self.label_22 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_22.setGeometry(QtCore.QRect(320, 170, 91, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_22.setFont(font)
+        self.label_22.setObjectName("label_22")
+        self.label_23 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_23.setGeometry(QtCore.QRect(10, 190, 111, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_23.setFont(font)
+        self.label_23.setObjectName("label_23")
+        self.label_24 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_24.setGeometry(QtCore.QRect(10, 210, 111, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_24.setFont(font)
+        self.label_24.setObjectName("label_24")
+        self.label_25 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_25.setGeometry(QtCore.QRect(10, 230, 111, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_25.setFont(font)
+        self.label_25.setObjectName("label_25")
+
+        self.label_27 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_27.setGeometry(QtCore.QRect(420, 70, 131, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_27.setFont(font)
+        self.label_27.setObjectName("label_27")
+        self.label_27.setText(str(list(self.portfolio_data["inception_date"])[0]))
+
+        self.label_28 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_28.setGeometry(QtCore.QRect(420, 90, 131, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_28.setFont(font)
+        self.label_28.setObjectName("label_28")
+        self.label_28.setText(str(list(self.cash_flow_data["date"])[0]))
+
+        self.label_29 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_29.setGeometry(QtCore.QRect(420, 110, 131, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_29.setFont(font)
+        self.label_29.setObjectName("label_29")
+        self.label_29.setText(str(list(self.cash_flow_data["ammount"])[0]))
+
+        self.label_30 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_30.setGeometry(QtCore.QRect(420, 130, 131, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_30.setFont(font)
+        self.label_30.setObjectName("label_30")
+        self.label_30.setText(list(self.portfolio_data["portfolio_type"])[0])
+
+        self.label_31 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_31.setGeometry(QtCore.QRect(420, 150, 131, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_31.setFont(font)
+        self.label_31.setObjectName("label_31")
+        self.label_31.setText(list(self.cash_flow_data["currency"])[0])
+
+        self.label_32 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_32.setGeometry(QtCore.QRect(420, 170, 131, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_32.setFont(font)
+        self.label_32.setObjectName("label_32")
+        self.label_32.setText(str(sum(list(self.cash_flow_data["ammount"]))))
+
+        self.label_33 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_33.setGeometry(QtCore.QRect(420, 50, 131, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_33.setFont(font)
+        self.label_33.setObjectName("label_33")
+        self.label_33.setText(str(list(self.portfolio_data["full_name"])[0]))
+
+        self.label_34 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_34.setGeometry(QtCore.QRect(130, 190, 181, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_34.setFont(font)
+        self.label_34.setObjectName("label_34")
+
+        self.label_35 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_35.setGeometry(QtCore.QRect(130, 210, 181, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_35.setFont(font)
+        self.label_35.setObjectName("label_35")
+        self.label_36 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_36.setGeometry(QtCore.QRect(130, 230, 181, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_36.setFont(font)
+        self.label_36.setObjectName("label_36")
+        self.gridLayout_7.addWidget(self.groupBox_3, 0, 1, 1, 1)
+
+        self.label_26 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_26.setGeometry(QtCore.QRect(10, 250, 111, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_26.setFont(font)
+        self.label_26.setObjectName("label_26")
+        self.label_26.setText("Trade Ammount:")
+
+        self.label_37 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_37.setGeometry(QtCore.QRect(130, 250, 131, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_37.setFont(font)
+        self.label_37.setObjectName("label_37")
+
+        self.label_38 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_38.setGeometry(QtCore.QRect(280, 230, 111, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_38.setFont(font)
+        self.label_38.setObjectName("label_38")
+        self.label_38.setText("Margin %")
+
+        self.label_39 = QtWidgets.QLabel(self.groupBox_3)
+        self.label_39.setGeometry(QtCore.QRect(280, 250, 131, 21))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setItalic(True)
+        self.label_39.setFont(font)
+        self.label_39.setObjectName("label_39")
+
+        self.label_16.setText("Portfolio Description:")
+        self.label_17.setText("Inception Date:")
+        self.label_18.setText("Funding Date:")
+        self.label_19.setText( "Initial Funding:")
+        self.label_20.setText("Type:")
+        self.label_21.setText("Currency:")
+        self.label_22.setText( "Cash Balance:")
+        self.label_23.setText("Notional:")
+        self.label_24.setText("Money at Risk:")
+        self.label_25.setText("Margin Ammount:")
+
+        self.label_35.setText("i")
 
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
@@ -882,9 +1113,28 @@ class TradeEntry(object):
         self.groupBox_3.setTitle(_translate("Dialog", "Info"))
         self.label_9.setText(_translate("Dialog", "Trade Descreption :"))
         self.label_11.setText(_translate("Dialog", "Strategy Description:"))
-        self.label_12.setText(_translate("Dialog", " Notional Value:"))
 
-        self.label_14.setText(_translate("Dialog", " Notional Value:"))
+    def calculate_margin(self):
+
+        try:
+            self.label_36.setText(str(float(self.doubleSpinBox.value())/100*round(float(self.text_input_2.text()) * float(self.label_15.text()), 2)))
+            self.trade_cash = round(float(self.text_input_2.text()) * float(self.label_15.text()), 2)-(float(self.doubleSpinBox.value())/100*round(float(self.text_input_2.text()) * float(self.label_15.text()), 2))
+            self.label_37.setText(str(self.trade_cash))
+            self.label_39.setText(str(round((float(self.doubleSpinBox.value()) / 100 * round(
+                float(self.text_input_2.text()) * float(self.label_15.text()), 2) / self.trade_cash), 2) * 100) + " %")
+        except:
+            pass
+
+    def calculate_notional(self):
+
+        try:
+            self.label_34.setText(str(round(float(self.text_input_2.text()) * float(self.label_15.text()), 2)))
+            self.trade_cash = round(float(self.text_input_2.text()) * float(self.label_15.text()), 2)-(float(self.doubleSpinBox.value())/100*round(float(self.text_input_2.text()) * float(self.label_15.text()), 2))
+            self.label_37.setText(str(self.trade_cash))
+            self.label_39.setText(str(round((float(self.doubleSpinBox.value()) / 100 * round(
+                float(self.text_input_2.text()) * float(self.label_15.text()), 2) / self.trade_cash), 2) * 100) + " %")
+        except:
+            pass
 
     def close_trade(self):
 
@@ -937,43 +1187,93 @@ class TradeEntry(object):
 
         self.load_strat_desc()
 
+        self.cash_flow_data = SQL(data_base=self.data_base,
+                                  user_name=self.user_name,
+                                  password=self.password).select_data(select_query="""select*from cash_flow 
+                                                                                      where portfolio_code = {port_code}
+                                                                                                             """.format(
+                                                                port_code=list(self.portfolio_data["portfolio_id"])[0]))
+
+        self.label_32.setText(str(sum(list(self.cash_flow_data["ammount"]))))
+
     def enter_trade(self, side):
 
-        self.db_connection = SQL(data_base=self.data_base, user_name=self.user_name, password=self.password)
-        self.strat_code_query = self.db_connection.select_data(select_query="""select*from strategy 
-                                   where strategy_name = '{strat_name}'""".format(strat_name=self.cbox_3.currentText()))
-        self.db_connection.close_connection()
-
-        if self.doubleSpinBox.value() > 0.00:
-            self.leverage = "Yes"
+        if self.trade_cash > float(self.label_32.text()):
+            MsgBoxes().info_box(message="Position is too large. There is not enough cash in the portfolio !", title="Notification")
         else:
-            self.leverage = "No"
 
-        if side == "SELL":
-            self.quantity = int(self.text_input_2.text()) * -1
-        else:
-            self.quantity = int(self.text_input_2.text())
+            self.db_connection = SQL(data_base=self.data_base, user_name=self.user_name, password=self.password)
+            self.strat_code_query = self.db_connection.select_data(select_query="""select*from strategy 
+                                       where strategy_name = '{strat_name}'""".format(strat_name=self.cbox_3.currentText()))
+            self.db_connection.close_connection()
 
-        if self.leverage == "Yes":
-
-            self.margin = int(self.text_input_2.text())*float(self.last_price)*-1*(float(self.doubleSpinBox.value())/100)
-
-            self.cash_flow_ammount = int(self.text_input_2.text()) * float(self.last_price) * -1 * \
-                                     ((100 - float(self.doubleSpinBox.value())) / 100)
-        else:
-            self.margin = 0
-
-            self.cash_flow_ammount = int(self.text_input_2.text()) * float(self.last_price) * -1
-
-        if len(self.text_input_3.text()) > 0:
-            self.sl = "Yes"
-            self.sl_level = self.text_input_3.text()
-
-            if (side == "BUY") and (float(self.last_price) < float(self.sl_level)):
-                MsgBoxes().info_box(message="BUY Trade. SL Price is larger than trade price !", title="Notification")
-            elif (side == "SELL") and (float(self.last_price) > float(self.sl_level)):
-                MsgBoxes().info_box(message="SELL Trade. SL Price is smaller than trade price !", title="Notification")
+            if self.doubleSpinBox.value() > 0.00:
+                self.leverage = "Yes"
             else:
+                self.leverage = "No"
+
+            if side == "SELL":
+                self.quantity = int(self.text_input_2.text()) * -1
+            else:
+                self.quantity = int(self.text_input_2.text())
+
+            if self.leverage == "Yes":
+
+                self.margin = int(self.text_input_2.text())*float(self.last_price)*-1*(float(self.doubleSpinBox.value())/100)
+
+                self.cash_flow_ammount = int(self.text_input_2.text()) * float(self.last_price) * -1 * \
+                                         ((100 - float(self.doubleSpinBox.value())) / 100)
+            else:
+                self.margin = 0
+
+                self.cash_flow_ammount = int(self.text_input_2.text()) * float(self.last_price) * -1
+
+            if len(self.text_input_3.text()) > 0:
+                self.sl = "Yes"
+                self.sl_level = self.text_input_3.text()
+
+                if (side == "BUY") and (float(self.last_price) < float(self.sl_level)):
+                    MsgBoxes().info_box(message="BUY Trade. SL Price is larger than trade price !", title="Notification")
+                elif (side == "SELL") and (float(self.last_price) > float(self.sl_level)):
+                    MsgBoxes().info_box(message="SELL Trade. SL Price is smaller than trade price !", title="Notification")
+                else:
+
+                    # Trade Entry
+
+                    Entries(data_base=self.data_base,
+                            user_name=self.user_name,
+                            password=self.password).trade(date=self.dateEdit.text().replace(". ", "").replace(".", ""),
+                                                          portfolio_code=list(self.strat_code_query["portfolio_code"])[0],
+                                                          strategy_code=list(self.strat_code_query["strategy_code"])[0],
+                                                          side=side,
+                                                          quantity=self.quantity,
+                                                          trade_price=float(self.last_price),
+                                                          leverage=self.leverage,
+                                                          sl=self.sl,
+                                                          sl_level=float(self.sl_level),
+                                                          sec_id=list(self.sec_data["sec_id"])[0],
+                                                          leverage_perc=self.doubleSpinBox.value(),
+                                                          ticker=list(self.sec_data["ticker"])[0],
+                                                          margin_bal=self.margin)
+
+
+                    Entries(data_base=self.data_base,
+                            user_name=self.user_name,
+                            password=self.password).cash_flow(port_code=list(self.strat_code_query["portfolio_code"])[0],
+                                                              ammount=self.cash_flow_ammount,
+                                                              cft="OUTFLOW",
+                                                              date=self.dateEdit.text().replace(". ", "").replace(".", ""),
+                                                              currency=list(self.portfolio_data["currency"])[0],
+                                                              comment="Trade",
+                                                              client=self.user_name)
+
+                    MsgBoxes().info_box(message="Trade was booked successfully !", title="Notification")
+
+                    self.load_strat_desc()
+
+            else:
+                self.sl = "No"
+                self.sl_level = 0
 
                 # Trade Entry
 
@@ -991,8 +1291,9 @@ class TradeEntry(object):
                                                       sec_id=list(self.sec_data["sec_id"])[0],
                                                       leverage_perc=self.doubleSpinBox.value(),
                                                       ticker=list(self.sec_data["ticker"])[0],
-                                                      margin_bal=self.margin)
+                                                      margin_bal=int(self.text_input_2.text())*float(self.last_price)*-1*(float(self.doubleSpinBox.value())/100))
 
+                # Cash flow side of the trade
 
                 Entries(data_base=self.data_base,
                         user_name=self.user_name,
@@ -1006,45 +1307,19 @@ class TradeEntry(object):
 
                 MsgBoxes().info_box(message="Trade was booked successfully !", title="Notification")
 
+
                 self.load_strat_desc()
 
-        else:
-            self.sl = "No"
-            self.sl_level = 0
+            self.cash_flow_data = SQL(data_base=self.data_base,
+                                      user_name=self.user_name,
+                                      password=self.password).select_data(select_query="""select*from cash_flow 
+                                                                                    where portfolio_code = {port_code}
+                                                                                                     """.format(
+                                                                port_code=list(self.portfolio_data["portfolio_id"])[0]))
 
-            # Trade Entry
+            self.label_32.setText(str(sum(list(self.cash_flow_data["ammount"]))))
 
-            Entries(data_base=self.data_base,
-                    user_name=self.user_name,
-                    password=self.password).trade(date=self.dateEdit.text().replace(". ", "").replace(".", ""),
-                                                  portfolio_code=list(self.strat_code_query["portfolio_code"])[0],
-                                                  strategy_code=list(self.strat_code_query["strategy_code"])[0],
-                                                  side=side,
-                                                  quantity=self.quantity,
-                                                  trade_price=float(self.last_price),
-                                                  leverage=self.leverage,
-                                                  sl=self.sl,
-                                                  sl_level=float(self.sl_level),
-                                                  sec_id=list(self.sec_data["sec_id"])[0],
-                                                  leverage_perc=self.doubleSpinBox.value(),
-                                                  ticker=list(self.sec_data["ticker"])[0],
-                                                  margin_bal=int(self.text_input_2.text())*float(self.last_price)*-1*(float(self.doubleSpinBox.value())/100))
 
-            # Cash flow side of the trade
-
-            Entries(data_base=self.data_base,
-                    user_name=self.user_name,
-                    password=self.password).cash_flow(port_code=list(self.strat_code_query["portfolio_code"])[0],
-                                                      ammount=self.cash_flow_ammount,
-                                                      cft="OUTFLOW",
-                                                      date=self.dateEdit.text().replace(". ", "").replace(".", ""),
-                                                      currency=list(self.portfolio_data["currency"])[0],
-                                                      comment="Trade",
-                                                      client=self.user_name)
-
-            MsgBoxes().info_box(message="Trade was booked successfully !", title="Notification")
-
-            self.load_strat_desc()
 
     def get_last_price(self):
 

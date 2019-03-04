@@ -26,7 +26,7 @@ class MainWindow(object):
         self.env_box = QtWidgets.QComboBox(self.login_dialog)
         self.env_box.setGeometry(QtCore.QRect(170, 80, 121, 25))
         self.env_box.setObjectName("comboBox")
-        self.env_box.addItems(["Demo", "Developer", "Live"])
+        self.env_box.addItems(["Developer", "Live"])
 
         self.user_name_label = QtWidgets.QLabel(self.login_dialog)
         self.user_name_label.setGeometry(QtCore.QRect(20, 20, 131, 21))
@@ -74,8 +74,6 @@ class MainWindow(object):
                 self.db = "dev_ffm_sys"
             elif self.env_box.currentText() == "Live":
                 self.db = "ffm_sys"
-            else:
-                self.db = "demo"
 
             self.login_dialog.close()
 
@@ -97,8 +95,6 @@ class MainWindow(object):
             self.main_window.setWindowTitle("Fractal Fund Manager 1.0 - " + "Developer Environment")
         elif self.env_box.currentText() == "Live":
             self.main_window.setWindowTitle("Fractal Fund Manager 1.0 - " + "Live Environment")
-        else:
-            self.main_window.setWindowTitle("Fractal Fund Manager 1.0 - " + "Demo Environment")
 
         self.centralwidget = QtWidgets.QWidget(self.main_window)
         self.centralwidget.setObjectName("centralwidget")
@@ -258,15 +254,9 @@ class MainWindow(object):
         self.actionLive.setText("Live")
         self.menuEnvironment.addAction(self.actionLive)
 
-        self.actionDemo = QtWidgets.QAction(self.main_window)
-        self.actionDemo.setObjectName("actionDemo")
-        self.actionDemo.setText("Demo")
-        self.menuEnvironment.addAction(self.actionDemo)
-
         # Actions
         self.actionDev.triggered.connect(self.dev_env)
         self.actionLive.triggered.connect(self.live_env)
-        self.actionDemo.triggered.connect(self.demo_env)
 
 # ========== Entries
         self.menuEntry = QtWidgets.QMenu(self.menubar)
@@ -485,12 +475,6 @@ class MainWindow(object):
         self.login()
         self.main_window.setWindowTitle("Fractal Fund Manager 1.0 - " + "Live Environment")
         MsgBoxes().info_box(message="Connected to Live Environment", title="Notification")
-
-    def demo_env(self):
-
-        self.login()
-        self.main_window.setWindowTitle("Fractal Fund Manager 1.0 - " + "Demo Environment")
-        MsgBoxes().info_box(message="Connected to Demo Environment", title="Notification")
 
 
 class MsgBoxes:
