@@ -176,7 +176,44 @@ class OnlineData:
 
         return self.data_frame
 
+    def get_one_year_prices(self):
 
+        """
+        Gets one day daily prices for the selected security for 1 year
+        :return:
+        """
+
+        self.url = """https://api.iextrading.com/1.0/stock/{ticker}/chart/1y""".format(ticker=self.ticker)
+        self.r = requests.get(self.url)
+        self.data_frame = pd.read_json(self.r.text)
+
+        return self.data_frame
+
+    def get_five_year_prices(self):
+
+        """
+        Gets one day daily prices for the selected security for 5 years
+        :return:
+        """
+
+        self.url = """https://api.iextrading.com/1.0/stock/{ticker}/chart/5y""".format(ticker=self.ticker)
+        self.r = requests.get(self.url)
+        self.data_frame = pd.read_json(self.r.text)
+
+        return self.data_frame
+
+    def get_one_month_prices(self):
+
+        """
+        Gets one day daily prices for the selected security for one month
+        :return:
+        """
+
+        self.url = """https://api.iextrading.com/1.0/stock/{ticker}/chart/1m""".format(ticker=self.ticker)
+        self.r = requests.get(self.url)
+        self.data_frame = pd.read_json(self.r.text)
+
+        return self.data_frame
 
 class Entries(SQL):
 

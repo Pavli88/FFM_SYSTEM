@@ -4,7 +4,7 @@ from FFM_SYSTEM.ffm_data import *
 from datetime import date
 from datetime import timedelta
 from _datetime import datetime
-import os
+from pandas.tseries.offsets import BDay
 
 # ----------------- #
 #    ARGUMENTS      #
@@ -32,6 +32,7 @@ parser.add_argument("--env", help="Environment switch. Default:prod; Switches: d
 parser.add_argument("--ied_download", help="Intraday equity data download. Switch: Yes")
 parser.add_argument("--pos_calc", help="Calculates positions from trade data within a portfolio. Switch: Yes")
 parser.add_argument("--nav_calc", help="Calculates portfolios NAV. Switch: Yes")
+parser.add_argument("--live_nav", help="Calculates portfolios NAV with latest prices. Switch: Yes")
 
 args = parser.parse_args()
 
@@ -105,7 +106,7 @@ class FfmProcess:
 
         self.query_date0 = str(self.portdate)
         self.query_date = self.query_date0[0:4] + self.query_date0[5:7] + self.query_date0[8:10]
-        self.query_date_1 = str(self.portdate+timedelta(days=-1))
+        self.query_date_1 = str(self.portdate - BDay(1))
         self.query_date_1 = self.query_date_1[0:4] + self.query_date_1[5:7] + self.query_date_1[8:10]
 
         # SQL data base connection session start
@@ -145,163 +146,168 @@ class FfmProcess:
         print("       PORTFOLIO POSITION CALCULATOR        ")
         print("********************************************")
 
-        self.collaterals = self.sql_connection.select_data(select_query="""select*from sec_info 
-                                                                           where type = 'LOAN' 
-                                                                           and ticker in ('MRGN', 'CLTR')""")
-
-        if args.portfolio == "ALL":
-
-            self.portfolios = self.sql_connection.select_data(select_query="""select portfolio_name, portfolio_id from portfolios 
-                                                                              where terminate is null 
-                                                                              and portfolio_group = 'No'""")
-            print(self.portfolios)
-            print("")
-
+        if self.portdate.weekday() == 6 or self.portdate.weekday() == 5:
+            print("WEEKEND ! POSITIONS CALCULATION IS SHUT DOWN!")
         else:
-            self.portfolios = self.sql_connection.select_data(select_query="""select portfolio_name, portfolio_id from portfolios 
-                                                                              where terminate is null 
-                                                                              and portfolio_group = 'No'
-                                                and portfolio_name = '{port_name}'""".format(port_name=args.portfolio))
-            print(self.portfolios)
-            print("")
 
-        for portfolio, port_id in zip(list(self.portfolios["portfolio_name"]), list(self.portfolios["portfolio_id"])):
+            self.collaterals = self.sql_connection.select_data(select_query="""select*from sec_info 
+                                                                               where type = 'LOAN' 
+                                                                               and ticker in ('MRGN', 'CLTR')""")
 
-            self.port_text = "PORTFOLIO: " + str(portfolio)
+            if args.portfolio == "ALL":
 
-            print(len(self.port_text)*"*")
-            print(self.port_text)
-            print(len(self.port_text)*"*")
-            print("")
-            print("Clearing out previous position records as of " +
-                  str(self.query_date) + " for " + str(portfolio))
-
-            self.sql_connection.insert_data(insert_query="""delete from positions 
-                                                                    where date = '{date}' 
-                                   and portfolio_code = '{port_code}'""".format(date=self.query_date,
-                                                                                port_code=port_id))
-
-            print("")
-            print("T-2 POSITIONS:")
-
-            self.t_min_one_pos = self.sql_connection.select_data(select_query="""select p.pos_id, p.sec_id, 
-                                                            p.portfolio_code, p.strategy_code, p.open_bal, p.close_bal, 
-                                                            s.name, s.ticker from positions p, sec_info s
-                                                            where p.sec_id = s.sec_id 
-                                                            and p.date = '{date_1}'
-                                                            and p.portfolio_code = '{port_code}'""".format(date_1=self.query_date_1,
-                                                                                                           port_code=port_id))
-
-            print(self.t_min_one_pos)
-            print("")
-            print("Quering out new trades...")
-            print("NEW TRADES:")
-
-            #print(self.t_min_one_pos)
-            self.trades = self.sql_connection.select_data(select_query="""select*from trade 
-                                                                          where date = '{date}' 
-                                                                          and portfolio_code = '{port_id}'""".format(
-                                                                                                  port_id=port_id,
-                                                                                                  date=self.query_date))
-            print(self.trades)
-            print("")
-
-            if (len(list(self.t_min_one_pos["pos_id"])) == 0) and len(list(self.trades["trade_id"])) == 0:
-                print("PORTFOLIO DOES NOT HAVE ANY POSITIONS AND TRADES AS OF", self.query_date)
+                self.portfolios = self.sql_connection.select_data(select_query="""select portfolio_name, portfolio_id from portfolios 
+                                                                                  where terminate is null 
+                                                                                  and portfolio_group = 'No'""")
+                print(self.portfolios)
                 print("")
+
             else:
-                # Processing existing positions
-
-                print("PROCESSING EXISTING POSITIONS AND CALCULATING POSITION BALANCE")
+                self.portfolios = self.sql_connection.select_data(select_query="""select portfolio_name, portfolio_id from portfolios 
+                                                                                  where terminate is null 
+                                                                                  and portfolio_group = 'No'
+                                                    and portfolio_name = '{port_name}'""".format(port_name=args.portfolio))
+                print(self.portfolios)
                 print("")
 
-                for pos in range(len(self.t_min_one_pos["pos_id"])):
+            for portfolio, port_id in zip(list(self.portfolios["portfolio_name"]), list(self.portfolios["portfolio_id"])):
 
-                    self.pos = self.t_min_one_pos.iloc[pos]
-                    self.trade = self.trades[self.trades["sec_id"] == self.pos["sec_id"]]
-                    self.close_bal = sum(list(self.trade["quantity"]))
+                self.port_text = "PORTFOLIO: " + str(portfolio)
 
-                    if self.pos["name"] == "Margin":
-                        pass
-                    else:
-                        self.new_bal = self.close_bal
+                print(len(self.port_text)*"*")
+                print(self.port_text)
+                print(len(self.port_text)*"*")
+                print("")
+                print("Clearing out previous position records as of " +
+                      str(self.query_date) + " for " + str(portfolio))
 
-                        print("Security:", self.pos["name"])
-                        print("New trade total quantity:", self.close_bal)
-                        print("T-2 balance:", self.pos["close_bal"])
-                        print("Close balance:", self.new_bal+self.pos["close_bal"])
-                        print("Writing data to data base")
+                self.sql_connection.insert_data(insert_query="""delete from positions 
+                                                                        where date = '{date}' 
+                                       and portfolio_code = '{port_code}'""".format(date=self.query_date,
+                                                                                    port_code=port_id))
 
-                        Entries(data_base=self.data_base,
-                                user_name=args.db_user_name,
-                                password=args.db_password).positions(date=self.query_date,
-                                                                     portfolio_code=self.pos["portfolio_code"],
-                                                                     strategy_code=self.pos["strategy_code"],
-                                                                     open_bal=self.pos["close_bal"],
-                                                                     close_bal=self.new_bal+self.pos["close_bal"],
-                                                                     sec_id=self.pos["sec_id"])
-                        print("")
+                print("")
+                print("T-2 POSITIONS:")
 
-                print("PROCESSING NEW TRADES AND CALCULATING POSITION BALANCE")
+                self.t_min_one_pos = self.sql_connection.select_data(select_query="""select p.pos_id, p.sec_id, 
+                                                                p.portfolio_code, p.strategy_code, p.open_bal, p.close_bal, 
+                                                                s.name, s.ticker from positions p, sec_info s
+                                                                where p.sec_id = s.sec_id 
+                                                                and p.date = '{date_1}'
+                                                                and p.portfolio_code = '{port_code}'""".format(date_1=self.query_date_1,
+                                                                                                               port_code=port_id))
+
+                print(self.t_min_one_pos)
+                print("")
+                print("Quering out new trades...")
+                print("NEW TRADES:")
+
+                #print(self.t_min_one_pos)
+                self.trades = self.sql_connection.select_data(select_query="""select*from trade 
+                                                                              where date = '{date}' 
+                                                                              and portfolio_code = '{port_id}'""".format(
+                                                                                                      port_id=port_id,
+                                                                                                      date=self.query_date))
+                print(self.trades)
                 print("")
 
-                for trade in range(len(self.trades["trade_id"])):
-
-                    self.tr = self.trades.iloc[trade]
-                    self.ps = self.t_min_one_pos[self.t_min_one_pos["sec_id"] == self.tr["sec_id"]]
-
-                    if len(list(self.ps["pos_id"])) >= 1:
-                        pass
-                    else:
-                        print("Security:", self.tr["ticker"])
-                        print("T-2 balance: 0")
-                        print("Close balance:", self.tr["quantity"])
-                        print("Margin:", self.tr["margin_bal"])
-                        print("Writing data to data base")
-
-                        Entries(data_base=self.data_base,
-                                user_name=args.db_user_name,
-                                password=args.db_password).positions(date=self.query_date,
-                                                                     portfolio_code=self.tr["portfolio_code"],
-                                                                     strategy_code=self.tr["strategy_code"],
-                                                                     open_bal=0,
-                                                                     close_bal=self.tr["quantity"],
-                                                                     sec_id=self.tr["sec_id"])
-
-                        print("")
-
-                print("MARGIN POSITION CALCULATION")
-                print("")
-
-                self.margin_filter = self.t_min_one_pos[self.t_min_one_pos["name"] == "Margin"]
-
-                if len(list(self.margin_filter["name"])) == 0:
-                    self.open_margin = 0
+                if (len(list(self.t_min_one_pos["pos_id"])) == 0) and len(list(self.trades["trade_id"])) == 0:
+                    print("PORTFOLIO DOES NOT HAVE ANY POSITIONS AND TRADES AS OF", self.query_date)
+                    print("")
                 else:
-                    self.open_margin = list(self.margin_filter["close_bal"])[0]
+                    # Processing existing positions
 
-                print("New trade total quantity:", sum(list(self.trades["margin_bal"])))
-                print("T-2 balance:", self.open_margin)
-                print("Close balance:", sum(list(self.trades["margin_bal"]))+self.open_margin)
-                print("Writing data to data base")
+                    print("PROCESSING EXISTING POSITIONS AND CALCULATING POSITION BALANCE")
+                    print("")
 
-                if len(self.trades["portfolio_code"]) == 0:
-                    self.port_code = list(self.t_min_one_pos["portfolio_code"])[0]
-                    self.strat_code = list(self.t_min_one_pos["strategy_code"])[0]
-                else:
-                    self.port_code = list(self.trades["portfolio_code"])[0]
-                    self.strat_code = list(self.trades["strategy_code"])[0]
+                    for pos in range(len(self.t_min_one_pos["pos_id"])):
+                        self.pos = self.t_min_one_pos.iloc[pos]
+                        self.trade = self.trades[self.trades["sec_id"] == self.pos["sec_id"]]
+                        self.close_bal = sum(list(self.trade["quantity"]))
 
-                Entries(data_base=self.data_base,
-                        user_name=args.db_user_name,
-                        password=args.db_password).positions(date=self.query_date,
-                                                             portfolio_code=self.port_code,
-                                                             strategy_code=self.strat_code,
-                                                             open_bal=self.open_margin,
-                                                             close_bal=sum(list(self.trades["margin_bal"]))+self.open_margin,
-                                                             sec_id=list(self.collaterals["sec_id"])[0])
+                        if self.pos["name"] == "Margin":
+                            pass
+                        else:
+                            self.new_bal = self.close_bal
 
-                print("")
+                            print("Security:", self.pos["name"])
+                            print("New trade total quantity:", self.close_bal)
+                            print("T-2 balance:", self.pos["close_bal"])
+                            print("Close balance:", self.new_bal+self.pos["close_bal"])
+                            print("Writing data to data base")
+
+                            Entries(data_base=self.data_base,
+                                    user_name=args.db_user_name,
+                                    password=args.db_password).positions(date=self.query_date,
+                                                                         portfolio_code=self.pos["portfolio_code"],
+                                                                         strategy_code=self.pos["strategy_code"],
+                                                                         open_bal=self.pos["close_bal"],
+                                                                         close_bal=self.new_bal+self.pos["close_bal"],
+                                                                         sec_id=self.pos["sec_id"])
+                            print("")
+
+                    print("PROCESSING NEW TRADES AND CALCULATING POSITION BALANCE")
+                    print("")
+
+                    for trade in range(len(self.trades["trade_id"])):
+
+                        self.tr = self.trades.iloc[trade]
+                        self.ps = self.t_min_one_pos[self.t_min_one_pos["sec_id"] == self.tr["sec_id"]]
+
+                        if len(list(self.ps["pos_id"])) >= 1:
+                            pass
+                        else:
+                            print("Security:", self.tr["ticker"])
+                            print("T-2 balance: 0")
+                            print("Close balance:", self.tr["quantity"])
+                            print("Margin:", self.tr["margin_bal"])
+                            print("Writing data to data base")
+
+                            Entries(data_base=self.data_base,
+                                    user_name=args.db_user_name,
+                                    password=args.db_password).positions(date=self.query_date,
+                                                                         portfolio_code=self.tr["portfolio_code"],
+                                                                         strategy_code=self.tr["strategy_code"],
+                                                                         open_bal=0,
+                                                                         close_bal=self.tr["quantity"],
+                                                                         sec_id=self.tr["sec_id"])
+
+                            print("")
+
+                    print("MARGIN POSITION CALCULATION")
+                    print("")
+
+                    self.margin_filter = self.t_min_one_pos[self.t_min_one_pos["name"] == "Margin"]
+
+                    if len(list(self.margin_filter["name"])) == 0:
+                        self.open_margin = 0
+                    else:
+                        self.open_margin = list(self.margin_filter["close_bal"])[0]
+
+                    print("New trade total quantity:", sum(list(self.trades["margin_bal"])))
+                    print("T-2 balance:", self.open_margin)
+                    print("Close balance:", sum(list(self.trades["margin_bal"]))+self.open_margin)
+                    print("Writing data to data base")
+
+                    if len(self.trades["portfolio_code"]) == 0:
+                        self.port_code = list(self.t_min_one_pos["portfolio_code"])[0]
+                        self.strat_code = list(self.t_min_one_pos["strategy_code"])[0]
+                    else:
+                        self.port_code = list(self.trades["portfolio_code"])[0]
+                        self.strat_code = list(self.trades["strategy_code"])[0]
+
+                    self.margin_id = self.collaterals[self.collaterals["ticker"] == "MRGN" ]
+
+                    Entries(data_base=self.data_base,
+                            user_name=args.db_user_name,
+                            password=args.db_password).positions(date=self.query_date,
+                                                                 portfolio_code=self.port_code,
+                                                                 strategy_code=self.strat_code,
+                                                                 open_bal=self.open_margin,
+                                                                 close_bal=sum(list(self.trades["margin_bal"]))+self.open_margin,
+                                                                 sec_id=list(self.margin_id["sec_id"])[0])
+
+                    print("")
 
     def nav_calc(self):
 
@@ -309,144 +315,168 @@ class FfmProcess:
         print("       PORTFOLIO NAV CALCULATOR        ")
         print("********************************************")
 
-        self.all_positions = self.sql_connection.select_data(select_query="""select p.date, p.portfolio_code, p.close_bal, s.ticker, s.type 
-                                                                         from positions p, sec_info s 
-                                                                         where p.sec_id = s.sec_id 
-                                                                and p.date = '{date}'""".format(date=self.query_date))
-        print(self.all_positions)
-        self.all_cash_flow = self.sql_connection.select_data(select_query="""select*from cash_flow 
-                                                                  where date = '{date}'""".format(date=self.query_date))
-
-        self.all_cash_flow_1 = self.sql_connection.select_data(select_query="""select*from cash_flow 
-                                                                          where date < '{date}'""".format(
-                                                                                                date=self.query_date))
-
-        if args.portfolio == "ALL":
-
-            self.portfolios = self.sql_connection.select_data(select_query="""select portfolio_name, portfolio_id from portfolios 
-                                                                                      where terminate is null 
-                                                                                      and portfolio_group = 'No'""")
-            print(self.portfolios)
-            print("")
-
+        if self.portdate.weekday() == 6 or self.portdate.weekday() == 5:
+            print("WEEKEND ! PORTFOLIO NAV CALCULATION IS SHUT DOWN!")
         else:
-            self.portfolios = self.sql_connection.select_data(select_query="""select portfolio_name, portfolio_id from portfolios 
-                                                                                      where terminate is null 
-                                                                                      and portfolio_group = 'No'
-                                                        and portfolio_name = '{port_name}'""".format(
-                                                                                            port_name=args.portfolio))
-            print(self.portfolios)
-            print("")
 
-        for port_id in list(self.portfolios["portfolio_id"]):
+            self.all_positions = self.sql_connection.select_data(select_query="""select p.date, p.portfolio_code, p.close_bal, s.ticker, s.type 
+                                                                             from positions p, sec_info s 
+                                                                             where p.sec_id = s.sec_id 
+                                                                    and p.date = '{date}'""".format(date=self.query_date))
+            print(self.all_positions)
+            self.all_cash_flow = self.sql_connection.select_data(select_query="""select*from cash_flow 
+                                                                      where date = '{date}'""".format(date=self.query_date))
 
-            print("Clearing out previous record as of " + str(self.query_date) + " for portfolio_id: " + str(port_id))
+            self.all_cash_flow_1 = self.sql_connection.select_data(select_query="""select*from cash_flow 
+                                                                              where date < '{date}'""".format(
+                                                                                                    date=self.query_date))
 
-            self.sql_connection.insert_data(insert_query="""delete from portfolio_nav where date = '{date}' 
-                                                                and portfolio_code = '{port_code}'""".format(
-                                                                                                date=self.query_date,
-                                                                                                port_code=port_id))
+            if args.portfolio == "ALL":
 
-        print("")
-        print("-------------------------------")
-        print("  Starting NAV calculations   ")
-        print("--------------------------------")
-        print("")
+                self.portfolios = self.sql_connection.select_data(select_query="""select portfolio_name, portfolio_id, inception_date
+                                                                                  from portfolios 
+                                                                                  where terminate is null 
+                                                                                  and portfolio_group = 'No'""")
+                print(self.portfolios)
+                print("")
 
-        for port_id in list(self.portfolios["portfolio_id"]):
-
-            self.query_text = "   Quering out positions for " + str(port_id) + " as of " + str(self.query_date)+str("   ")
-
-            print(len(self.query_text)*"*")
-            print(self.query_text)
-            print(len(self.query_text) * "*")
-            print("HOLDING NAV CALCULATION")
-            print("")
-
-            self.positions = self.all_positions[self.all_positions["portfolio_code"] == port_id]
-
-            print(self.positions)
-            print("")
-
-            self.market_value = 0
-            self.aum_value = 0
-
-            for quantity, ticker in zip(list(self.positions["close_bal"]), list(self.positions["ticker"])):
-
-                # NAV
-
-                if (ticker == "MRGN") or (ticker == "CLTR"):
-                    self.price = 1
-                else:
-                    self.price = OnlineData(ticker=ticker).last_eq_price()
-                    self.price = list(self.price["price"])[0]
-
-                self.market_value = self.market_value + (quantity*self.price)
-
-                # AUM
-
-                if (ticker == "MRGN") or (ticker == "CLTR"):
-                    self.aum_price = 0
-                else:
-                    self.aum_price = self.price
-
-                self.aum_value = self.aum_value + (quantity*self.aum_price)
-
-                print("MV: " + str(ticker) + " " + str(round(quantity * self.price, 2))+" Cumulative MV: "+str(self.market_value))
-
-            self.market_value = round(self.market_value, 2)
-
-            print(len(self.query_text) * "-")
-            print("Holding NAV: " + str(self.market_value))
-            print("Holding AUM: " + str(self.aum_value))
-            print(len(self.query_text)*"-")
-
-            print("CASH BALANCE CALCULATION")
-            print("")
-
-            self.cash_flow = self.all_cash_flow[self.all_cash_flow["portfolio_code"] == port_id]
-            self.cash_flow_1 = self.all_cash_flow_1[self.all_cash_flow_1["portfolio_code"] == port_id]
-
-            cash_flow_balance = sum(list(self.cash_flow["ammount"])) + sum(list(self.cash_flow_1["ammount"]))
-
-            print("T-2 Cash Balance: "+str(sum(list(self.cash_flow_1["ammount"]))))
-            print("T-1 Cash Flow: "+str(sum(list(self.cash_flow["ammount"]))))
-            print(len(self.query_text) * "-")
-            print("Cash balance -> " + str(cash_flow_balance))
-            print(len(self.query_text)*"-")
-
-            self.id = self.sql_connection.select_data(select_query="""select*from portfolio_nav""")
-            try:
-                self.port_lev_per = round(((self.aum_value + cash_flow_balance)-(self.market_value + cash_flow_balance))/(self.market_value + cash_flow_balance), 2)
-            except:
-                self.port_lev_per = 0
-
-            print(len(self.query_text) * "=")
-            print("Total NAV: " + str(self.market_value + cash_flow_balance))
-            print("Total AUM: " + str(self.aum_value + cash_flow_balance))
-            print("Portfolio Leverage %: " + str(self.port_lev_per))
-            print(len(self.query_text)*"=")
-            print("")
-            print("Writing calculated portfolio NAV data to database.")
-            print("")
-
-            if len(self.id["nav_id"]) < 1:
-                self.nav_id = 1
             else:
-                self.nav_id = list(self.id["nav_id"])[-1]+1
+                self.portfolios = self.sql_connection.select_data(select_query="""select portfolio_name, portfolio_id, inception_date 
+                                                                                  from portfolios 
+                                                                                  where terminate is null 
+                                                                                  and portfolio_group = 'No'
+                                                            and portfolio_name = '{port_name}'""".format(
+                                                                                                port_name=args.portfolio))
+                print(self.portfolios)
+                print("")
 
-            self.sql_connection.insert_data(insert_query="""insert into portfolio_nav (date, portfolio_code, 
-                                                            holding_nav, nav_id, cash_balance, total_nav, 
-                                                            aum, port_lev_perc) 
-                                                            values ('{date}', '{port_code}', '{holding_nav}', 
-     '{nav_id}', '{cash_bal}', '{tot_nav}', '{aum}', '{lev_perc}')""".format(date=self.query_date,
-                                                                             port_code=port_id,
-                                                                             holding_nav=self.market_value,
-                                                                             nav_id=self.nav_id,
-                                                                             cash_bal=cash_flow_balance,
-                                                                             tot_nav=self.market_value+cash_flow_balance,
-                                                                             aum=self.aum_value + cash_flow_balance,
-                                                                             lev_perc=self.port_lev_per))
+            for port_id in list(self.portfolios["portfolio_id"]):
+
+                print("Clearing out previous record as of " + str(self.query_date) + " for portfolio_id: " + str(port_id))
+
+                self.sql_connection.insert_data(insert_query="""delete from portfolio_nav where date = '{date}' 
+                                                                    and portfolio_code = '{port_code}'""".format(
+                                                                                                    date=self.query_date,
+                                                                                                    port_code=port_id))
+
+            print("")
+            print("-------------------------------")
+            print("  Starting NAV calculations   ")
+            print("--------------------------------")
+            print("")
+
+            for port_id in list(self.portfolios["portfolio_id"]):
+
+                self.port_incep_date = self.portfolios[self.portfolios["portfolio_id"] == port_id]
+
+                if self.portdate < list(self.port_incep_date["inception_date"])[0]:
+                    print("Calculation date is less then portfolio inception date!")
+                    print("")
+                else:
+
+                    self.query_text = "   Quering out positions for " + str(port_id) + " as of " + str(self.query_date)+str("   ")
+
+                    print(len(self.query_text)*"*")
+                    print(self.query_text)
+                    print(len(self.query_text) * "*")
+                    print("HOLDING NAV CALCULATION")
+                    print("")
+
+                    self.positions = self.all_positions[self.all_positions["portfolio_code"] == port_id]
+
+                    print(self.positions)
+                    print("")
+
+                    self.market_value = 0
+                    self.aum_value = 0
+
+                    for quantity, ticker in zip(list(self.positions["close_bal"]), list(self.positions["ticker"])):
+
+                        # NAV
+
+                        if (ticker == "MRGN") or (ticker == "CLTR"):
+                            self.price = 1
+                        else:
+
+                            # NAV calculation with latest share prices
+
+                            if args.live_nav == "Yes":
+                                self.price = OnlineData(ticker=ticker).last_eq_price()
+                                self.price = list(self.price["price"])[0]
+                            else:
+
+                                # NAV calculation with the selected date's price
+
+                                self.price = OnlineData(ticker=ticker).get_one_year_prices()
+                                self.price = self.price[self.price["date"] == str(self.query_date)]
+                                self.price = list(self.price["close"])[0]
+
+                        self.market_value = self.market_value + (quantity*self.price)
+
+                        # AUM
+
+                        if (ticker == "MRGN") or (ticker == "CLTR"):
+                            self.aum_price = 0
+                        else:
+                            self.aum_price = self.price
+
+                        self.aum_value = self.aum_value + (quantity*self.aum_price)
+
+                        print("MV: " + str(ticker) + " " + str(round(quantity * self.price, 2))+" Cumulative MV: "+str(self.market_value), "| Quantity: ", quantity, "Price: ", self.price)
+
+                    self.market_value = round(self.market_value, 2)
+
+                    print(len(self.query_text) * "-")
+                    print("Holding NAV: " + str(self.market_value))
+                    print("Holding AUM: " + str(self.aum_value))
+                    print(len(self.query_text)*"-")
+
+                    print("CASH BALANCE CALCULATION")
+                    print("")
+
+                    self.cash_flow = self.all_cash_flow[self.all_cash_flow["portfolio_code"] == port_id]
+                    self.cash_flow_1 = self.all_cash_flow_1[self.all_cash_flow_1["portfolio_code"] == port_id]
+
+                    cash_flow_balance = sum(list(self.cash_flow["ammount"])) + sum(list(self.cash_flow_1["ammount"]))
+
+                    print("T-2 Cash Balance: "+str(sum(list(self.cash_flow_1["ammount"]))))
+                    print("T-1 Cash Flow: "+str(sum(list(self.cash_flow["ammount"]))))
+                    print(len(self.query_text) * "-")
+                    print("Cash balance -> " + str(cash_flow_balance))
+                    print(len(self.query_text)*"-")
+
+                    self.id = self.sql_connection.select_data(select_query="""select*from portfolio_nav""")
+                    try:
+                        self.port_lev_per = (round((self.aum_value+cash_flow_balance)/(self.market_value+cash_flow_balance), 3)*100)-100
+                    except:
+                        self.port_lev_per = 0
+
+                    print(len(self.query_text) * "=")
+                    print("Total NAV: " + str(self.market_value + cash_flow_balance))
+                    print("Total AUM: " + str(self.aum_value + cash_flow_balance))
+                    print("Portfolio Leverage: " + str(self.port_lev_per) + " %")
+                    print(len(self.query_text)*"=")
+                    print("")
+                    print("Writing calculated portfolio NAV data to database.")
+                    print("")
+
+                    if len(self.id["nav_id"]) < 1:
+                        self.nav_id = 1
+                    else:
+                        self.nav_id = list(self.id["nav_id"])[-1]+1
+
+                    self.sql_connection.insert_data(insert_query="""insert into portfolio_nav (date, portfolio_code, 
+                                                                    holding_nav, nav_id, cash_balance, total_nav, 
+                                                                    aum, port_lev_perc) 
+                                                                    values ('{date}', '{port_code}', '{holding_nav}', 
+             '{nav_id}', '{cash_bal}', '{tot_nav}', '{aum}', '{lev_perc}')""".format(date=self.query_date,
+                                                                                     port_code=port_id,
+                                                                                     holding_nav=self.market_value,
+                                                                                     nav_id=self.nav_id,
+                                                                                     cash_bal=cash_flow_balance,
+                                                                                     tot_nav=self.market_value+cash_flow_balance,
+                                                                                     aum=self.aum_value + cash_flow_balance,
+                                                                                     lev_perc=self.port_lev_per))
 
     def security_return_calc(self):
         pass

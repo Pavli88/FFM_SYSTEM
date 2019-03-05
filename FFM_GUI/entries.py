@@ -1083,11 +1083,6 @@ class TradeEntry(object):
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
-        try:
-            self.load_strat_desc()
-        except:
-            MsgBoxes().info_box(message="Portfolio does not include any strategies! ", title="Notification")
-
     def retranslateUi(self, Dialog):
 
         _translate = QtCore.QCoreApplication.translate

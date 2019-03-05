@@ -446,16 +446,26 @@ class MainWindow(object):
                 MsgBoxes().info_box(message="Trading activity is not allowed on portfolio groups!",
                                     title="Notification")
             else:
-                Dialog = QtWidgets.QDialog()
-                trade_event = TradeEntry(Dialog, data_base=self.db,
-                                   user_name=self.user_name,
-                                   password=self.password,
-                                   portfolio_name=self.port_search_line.text())
-                trade_event.cbox_1.currentIndexChanged.connect(trade_event.load_securities)
-                trade_event.cbox_3.currentIndexChanged.connect(trade_event.load_strat_desc)
 
-                Dialog.show()
-                Dialog.exec_()
+                self.get_strat_data = SQL(data_base=self.db,
+                                          user_name=self.user_name,
+                                          password=self.password).select_data(select_query="""select*from strategy 
+                                                        where portfolio_code in (select portfolio_id from portfolios 
+                      where portfolio_name = '{portfolio_name}')""".format(portfolio_name=self.port_search_line.text()))
+
+                if len(list(self.get_strat_data["strategy_name"])) == 0:
+                    MsgBoxes().info_box(message="Portfolio does not include any strategies! ", title="Notification")
+                else:
+                    Dialog = QtWidgets.QDialog()
+                    trade_event = TradeEntry(Dialog, data_base=self.db,
+                                       user_name=self.user_name,
+                                       password=self.password,
+                                       portfolio_name=self.port_search_line.text())
+                    trade_event.cbox_1.currentIndexChanged.connect(trade_event.load_securities)
+                    trade_event.cbox_3.currentIndexChanged.connect(trade_event.load_strat_desc)
+
+                    Dialog.show()
+                    Dialog.exec_()
 
     def port_group_entry(self):
 
