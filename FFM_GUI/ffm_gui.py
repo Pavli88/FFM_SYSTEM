@@ -96,6 +96,11 @@ class MainWindow(object):
         elif self.env_box.currentText() == "Live":
             self.main_window.setWindowTitle("Fractal Fund Manager 1.0 - " + "Live Environment")
 
+        self.toolBar = QtWidgets.QToolBar(self.main_window)
+        self.toolBar.setObjectName("toolBar")
+        self.main_window.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar)
+        self.main_window.insertToolBarBreak(self.toolBar)
+
         self.centralwidget = QtWidgets.QWidget(self.main_window)
         self.centralwidget.setObjectName("centralwidget")
         self.main_window.setCentralWidget(self.centralwidget)
@@ -341,17 +346,22 @@ class MainWindow(object):
         self.menuProcess.addAction(self.menuCalculations.menuAction())
 
         self.actionPortfolio_Positions = QtWidgets.QAction(self.main_window)
-        self.actionPortfolio_Positions.setObjectName("actionSEC_gov")
+        self.actionPortfolio_Positions.setObjectName("actionPortfolio_Positions")
         self.actionPortfolio_Positions.setText("Portfolio Positions")
         self.menuCalculations.addAction(self.actionPortfolio_Positions)
 
+        self.actionPortfolio_NAV = QtWidgets.QAction(self.main_window)
+        self.actionPortfolio_NAV.setObjectName("actionPortfolio_NAV")
+        self.actionPortfolio_NAV.setText("Portfolio NAV")
+        self.menuCalculations.addAction(self.actionPortfolio_NAV)
+
         self.actionPortfolio_Holding = QtWidgets.QAction(self.main_window)
-        self.actionPortfolio_Holding.setObjectName("actionSEC_gov")
+        self.actionPortfolio_Holding.setObjectName("actionPortfolio_Holding")
         self.actionPortfolio_Holding.setText("Portfolio Holdings")
         self.menuCalculations.addAction(self.actionPortfolio_Holding)
 
         self.actionPortfolio_Return = QtWidgets.QAction(self.main_window)
-        self.actionPortfolio_Return.setObjectName("actionSEC_gov")
+        self.actionPortfolio_Return.setObjectName("actionPortfolio_Return")
         self.actionPortfolio_Return.setText("Portfolio Returns")
         self.menuCalculations.addAction(self.actionPortfolio_Return)
 

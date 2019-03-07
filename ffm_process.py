@@ -33,6 +33,7 @@ parser.add_argument("--ied_download", help="Intraday equity data download. Switc
 parser.add_argument("--pos_calc", help="Calculates positions from trade data within a portfolio. Switch: Yes")
 parser.add_argument("--nav_calc", help="Calculates portfolios NAV. Switch: Yes")
 parser.add_argument("--live_nav", help="Calculates portfolios NAV with latest prices. Switch: Yes")
+parser.add_argument("--hold_calc", help="Calculates portfolios holding data. Switch: Yes")
 
 args = parser.parse_args()
 
@@ -478,6 +479,174 @@ class FfmProcess:
                                                                                      aum=self.aum_value + cash_flow_balance,
                                                                                      lev_perc=self.port_lev_per))
 
+    def portfolio_holding_calc(self):
+
+        print("********************************************")
+        print("       PORTFOLIO HOLDING CALCULATOR        ")
+        print("********************************************")
+
+        if self.portdate.weekday() == 6 or self.portdate.weekday() == 5:
+            print("WEEKEND ! PORTFOLIO NAV CALCULATION IS SHUT DOWN!")
+        else:
+            if args.portfolio == "ALL":
+
+                self.portfolios = self.sql_connection.select_data(select_query="""select portfolio_name, portfolio_id, inception_date
+                                                                                  from portfolios 
+                                                                                  where terminate is null 
+                                                                                  and portfolio_group = 'No'""")
+                print(self.portfolios)
+                print("")
+
+            else:
+                self.portfolios = self.sql_connection.select_data(select_query="""select portfolio_name, portfolio_id, inception_date 
+                                                                                  from portfolios 
+                                                                                  where terminate is null 
+                                                                                  and portfolio_group = 'No'
+                                                            and portfolio_name = '{port_name}'""".format(
+                                                                                                port_name=args.portfolio))
+                print(self.portfolios)
+                print("")
+
+            for port_id in list(self.portfolios["portfolio_id"]):
+
+                print("Clearing out previous holding record as of " + str(self.query_date) + " for portfolio_id: " + str(port_id))
+
+                self.sql_connection.insert_data(insert_query="""delete from portfolio_holdings where date = '{date}' 
+                                                                and portfolio_id = '{port_code}'""".format(
+                                                                                                   date=self.query_date,
+                                                                                                   port_code=port_id))
+
+            print("")
+            print("----------------------------------")
+            print("  Starting Holding calculations   ")
+            print("----------------------------------")
+            print("")
+
+            for port_id in list(self.portfolios["portfolio_id"]):
+
+                print("Calculating Portfolio Holdings. Portfolio code:", port_id)
+
+                self.port_incep_date = self.portfolios[self.portfolios["portfolio_id"] == port_id]
+
+                if self.portdate < list(self.port_incep_date["inception_date"])[0]:
+                    print("Calculation date is less then portfolio inception date!")
+                    print("")
+                else:
+                    self.nav_data = self.sql_connection.select_data(select_query="""select*from portfolio_nav 
+                                                                                    where date = {date} 
+                                                        and portfolio_code = {port_code}""".format(date=self.query_date,
+                                                                                                   port_code=port_id))
+
+                    if self.nav_data["total_nav"][0] == 0.0:
+                        print("NAV is empty. Stop Portfolio Holding calculation")
+                        print("")
+                    else:
+                        self.pos_sec_data = self.sql_connection.select_data(select_query="""select p.pos_id, p.date, 
+                                                                                         p.portfolio_code, p.strategy_code, 
+                                                                                         p.close_bal, s.sec_id, s.name, 
+                                                                                         s.type, s.ticker, s.industry, 
+                                                                                         s.sector, s.country
+                                                                                         from positions p, sec_info s 
+                                                                                            where p.sec_id = s.sec_id 
+                                                                                            and p.date = '{date}' 
+                                                        and p.portfolio_code = {port_id};""".format(date=self.query_date,
+                                                                                                    port_id=port_id))
+
+                        # Calculating pos_id number
+
+                        self.pos_lenght = self.sql_connection.select_data(select_query="""select count(*) 
+                                                                                          from portfolio_holdings""")
+                        self.pos_lenght = self.pos_lenght["count(*)"][0]
+                        print("Data base position id starts from ", self.pos_lenght)
+                        print("Processing positions:")
+                        
+                        # Security level calculations
+
+                        for pos in range(len(list(self.pos_sec_data["pos_id"]))):
+
+                            self.pos_sec = self.pos_sec_data.iloc[pos]
+
+                            if (self.pos_sec["ticker"] == "MRGN") or (self.pos_sec["ticker"] == "CLTR"):
+                                self.price = 1
+                            else:
+                                self.price = OnlineData(ticker=self.pos_sec["ticker"]).get_one_year_prices()
+                                self.price = self.price[self.price["date"] == str(self.query_date)]
+                                self.price = list(self.price["close"])[0]
+
+                            print("Date:", self.query_date, "Pos ID:", self.pos_lenght + pos + 1, "Port ID:",
+                                  self.pos_sec["portfolio_code"], "Strat Code:", self.pos_sec["strategy_code"],
+                                  "Ticker:", self.pos_sec["ticker"], "Type:", self.pos_sec["type"],
+                                  "Face:", self.pos_sec["close_bal"], "Price:", self.price,
+                                  "MV:", self.price * self.pos_sec["close_bal"],
+                                  "Weight:", ((self.price * self.pos_sec["close_bal"]) / self.nav_data["total_nav"][0]) * 100)
+
+                            self.sql_connection.insert_data(insert_query="""insert into portfolio_holdings (date, pos_id, 
+                                                                            portfolio_id, strategy_code, sec_id, name, 
+                                                                            type, ticker, industry, sector, country, 
+                                                                            face_value, current_price, market_value, weight)
+                                                                            values ('{date}', '{pos_id}', 
+                                                                            '{port_id}', '{strat_code}', '{sec_id}', 
+                                                                            '{name}', '{type}', '{ticker}', '{industry}', 
+                                                                            '{sector}', '{country}', '{face_value}', 
+                                                                            '{price}', '{mv}', '{weight}')""".format(
+                                date=self.query_date,
+                                pos_id=self.pos_lenght + pos + 1,
+                                port_id=self.pos_sec["portfolio_code"],
+                                strat_code=self.pos_sec["strategy_code"],
+                                sec_id=self.pos_sec["sec_id"],
+                                name=self.pos_sec["name"],
+                                type=self.pos_sec["type"],
+                                ticker=self.pos_sec["ticker"],
+                                industry=self.pos_sec["industry"],
+                                sector=self.pos_sec["sector"],
+                                country=self.pos_sec["country"],
+                                face_value=self.pos_sec["close_bal"],
+                                price=self.price,
+                                mv=self.price * self.pos_sec["close_bal"],
+                                weight=((self.price * self.pos_sec["close_bal"]) / self.nav_data["total_nav"][0]) * 100))
+
+                        # Cash, margin calculation
+
+                        print("Calculating Cash weight")
+
+                        self.pos_lenght = self.sql_connection.select_data(select_query="""select count(*) 
+                                                                                          from portfolio_holdings""")
+                        self.pos_lenght = self.pos_lenght["count(*)"][0]
+
+                        print("Cash position ID starts from",self.pos_lenght)
+                        print("Cash balance:", self.nav_data["cash_balance"][0])
+                        print("Cash weight:", ((self.nav_data["cash_balance"][0]) / self.nav_data["total_nav"][0]) * 100)
+                        print("Writing cash data to portfolio_holdings table")
+
+                        self.sql_connection.insert_data(insert_query="""insert into portfolio_holdings (date, pos_id, 
+                                                                            portfolio_id, strategy_code, sec_id, name, 
+                                                                            type, ticker, industry, sector, country, 
+                                                                            face_value, current_price, market_value, weight)
+                                                                            values ('{date}', '{pos_id}', 
+                                                                            '{port_id}', '{strat_code}', '{sec_id}', 
+                                                                            '{name}', '{type}', '{ticker}', '{industry}', 
+                                                                            '{sector}', '{country}', '{face_value}', 
+                                                                            '{price}', '{mv}', '{weight}')""".format(
+                                date=self.query_date,
+                                pos_id=self.pos_lenght + 1,
+                                port_id=self.pos_sec_data["portfolio_code"][0],
+                                strat_code=self.pos_sec_data["strategy_code"][0],
+                                sec_id=0,
+                                name="Spendable Cash",
+                                type="Cash Security",
+                                ticker="CASH",
+                                industry="-",
+                                sector="-",
+                                country="-",
+                                face_value=self.nav_data["cash_balance"][0],
+                                price=1,
+                                mv=self.nav_data["cash_balance"][0],
+                                weight=((self.nav_data["cash_balance"][0]) / self.nav_data["total_nav"][0]) * 100))
+
+                        print("")
+
+                        # Collateral calculation based on negative position sizes
+
     def security_return_calc(self):
         pass
 
@@ -539,5 +708,9 @@ if __name__ == "__main__":
     if args.nav_calc == "Yes":
 
         ffm_process.nav_calc()
+
+    if args.hold_calc == "Yes":
+
+        ffm_process.portfolio_holding_calc()
 
 
