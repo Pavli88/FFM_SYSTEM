@@ -310,6 +310,42 @@ class FfmProcess:
 
                     print("")
 
+                    print("COLLATERAL POSITION CALCULATION")
+                    print("")
+
+                    self.coll_filter = self.t_min_one_pos[self.t_min_one_pos["name"] == "Collateral"]
+
+                    if len(list(self.coll_filter["name"])) == 0:
+                        self.open_coll = 0
+                    else:
+                        self.open_coll = list(self.coll_filter["close_bal"])[0]
+
+                    print("New trade total quantity:", sum(list(self.trades["collateral"])))
+                    print("T-2 balance:", self.open_coll)
+                    print("Close balance:", sum(list(self.trades["collateral"])) + self.open_coll)
+                    print("Writing data to data base")
+
+                    if len(self.trades["portfolio_code"]) == 0:
+                        self.port_code = list(self.t_min_one_pos["portfolio_code"])[0]
+                        self.strat_code = list(self.t_min_one_pos["strategy_code"])[0]
+                    else:
+                        self.port_code = list(self.trades["portfolio_code"])[0]
+                        self.strat_code = list(self.trades["strategy_code"])[0]
+
+                    self.coll_id = self.collaterals[self.collaterals["ticker"] == "CLTR"]
+
+                    Entries(data_base=self.data_base,
+                            user_name=args.db_user_name,
+                            password=args.db_password).positions(date=self.query_date,
+                                                                 portfolio_code=self.port_code,
+                                                                 strategy_code=self.strat_code,
+                                                                 open_bal=self.open_coll,
+                                                                 close_bal=sum(list(
+                                                                     self.trades["collateral"])) + self.open_coll,
+                                                                 sec_id=list(self.coll_id["sec_id"])[0])
+
+                    print("")
+
     def nav_calc(self):
 
         print("********************************************")
@@ -416,8 +452,10 @@ class FfmProcess:
 
                         # AUM
 
-                        if (ticker == "MRGN") or (ticker == "CLTR"):
+                        if ticker == "MRGN":
                             self.aum_price = 0
+                        elif ticker == "CLTR":
+                            self.aum_price = 1
                         else:
                             self.aum_price = self.price
 
@@ -516,15 +554,16 @@ class FfmProcess:
                                                                                                    date=self.query_date,
                                                                                                    port_code=port_id))
 
-            print("")
-            print("----------------------------------")
-            print("  Starting Holding calculations   ")
-            print("----------------------------------")
-            print("")
-
             for port_id in list(self.portfolios["portfolio_id"]):
 
-                print("Calculating Portfolio Holdings. Portfolio code:", port_id)
+                print("")
+                print("===============================================")
+                print("PORTFOLIO CODE:", port_id)
+                print("===============================================")
+                print("---------------------------------------")
+                print("   Positions Valuations Calculations   ")
+                print("---------------------------------------")
+                print("")
 
                 self.port_incep_date = self.portfolios[self.portfolios["portfolio_id"] == port_id]
 
@@ -554,10 +593,13 @@ class FfmProcess:
 
                         # Calculating pos_id number
 
-                        self.pos_lenght = self.sql_connection.select_data(select_query="""select count(*) 
-                                                                                          from portfolio_holdings""")
-                        self.pos_lenght = self.pos_lenght["count(*)"][0]
+                        self.pos_lenght = self.sql_connection.select_data(select_query="""SELECT MAX(pos_id) AS 'max_id' 
+                                                                                          FROM portfolio_holdings""")
+
+                        self.pos_lenght = self.pos_lenght["max_id"][0]
+
                         print("Data base position id starts from ", self.pos_lenght)
+                        print("NAV:", self.nav_data["total_nav"][0])
                         print("Processing positions:")
                         
                         # Security level calculations
@@ -609,9 +651,9 @@ class FfmProcess:
 
                         print("Calculating Cash weight")
 
-                        self.pos_lenght = self.sql_connection.select_data(select_query="""select count(*) 
-                                                                                          from portfolio_holdings""")
-                        self.pos_lenght = self.pos_lenght["count(*)"][0]
+                        self.pos_lenght = self.sql_connection.select_data(select_query="""SELECT MAX(pos_id) AS 'max_id' 
+                                                                                          FROM portfolio_holdings""")
+                        self.pos_lenght = self.pos_lenght["max_id"][0]
 
                         print("Cash position ID starts from",self.pos_lenght)
                         print("Cash balance:", self.nav_data["cash_balance"][0])
@@ -646,6 +688,13 @@ class FfmProcess:
                         print("")
 
                         # Collateral calculation based on negative position sizes
+
+                print("")
+                print("---------------------------------------")
+                print("   Positions Risk Calculations   ")
+                print("---------------------------------------")
+                print("")
+
 
     def security_return_calc(self):
         pass

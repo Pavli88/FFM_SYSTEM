@@ -425,7 +425,7 @@ class Entries(SQL):
     def trade(self, date, portfolio_code, strategy_code,
               side, quantity, trade_price, leverage,
               sl, sl_level, sec_id,
-              leverage_perc, ticker, margin_bal):
+              leverage_perc, ticker, margin_bal, collateral):
 
         """
         Only for trade booking into trade table. Adding to previous open position is treated as a new trade with
@@ -451,7 +451,7 @@ class Entries(SQL):
         self.insert_query = """insert into trade (trade_id, date, trade_num, portfolio_code, 
                                                   strategy_code, side, quantity, trade_price, 
                                                   leverage, status, sl, sl_level,
-                                                  sec_id, leverage_perc, action, ticker, margin_bal)
+                                                  sec_id, leverage_perc, action, ticker, margin_bal, collateral)
 
                                values ('{trade_id}',  '{date}', 
                                        '{trade_num}','{portfolio_code}', 
@@ -460,23 +460,24 @@ class Entries(SQL):
                                        '{leverage}', '{status}',
                                        '{sl}', '{sl_level}',
                                        '{sec_id}', '{leverage_perc}',
-                                       '{action}', '{ticker}','{mb}')""".format(trade_id=self.trd_id,
-                                                                                date=date,
-                                                                                 trade_num=int(self.trd_num) + 1,
-                                                                                 portfolio_code=portfolio_code,
-                                                                                 strategy_code=strategy_code,
-                                                                                 side=side,
-                                                                                 quantity=quantity,
-                                                                                 trade_price=trade_price,
-                                                                                 leverage=leverage,
-                                                                                 status="OPEN",
-                                                                                 sl=sl,
-                                                                                 sl_level=sl_level,
-                                                                                 sec_id=sec_id,
-                                                                                 leverage_perc=leverage_perc,
-                                                                                 action="LIVE",
-                                                                                 ticker=ticker,
-                                                                                 mb=margin_bal)
+                                       '{action}', '{ticker}','{mb}','{coll}')""".format(trade_id=self.trd_id,
+                                                                                         date=date,
+                                                                                         trade_num=int(self.trd_num) + 1,
+                                                                                         portfolio_code=portfolio_code,
+                                                                                         strategy_code=strategy_code,
+                                                                                         side=side,
+                                                                                         quantity=quantity,
+                                                                                         trade_price=trade_price,
+                                                                                         leverage=leverage,
+                                                                                         status="OPEN",
+                                                                                         sl=sl,
+                                                                                         sl_level=sl_level,
+                                                                                         sec_id=sec_id,
+                                                                                         leverage_perc=leverage_perc,
+                                                                                         action="LIVE",
+                                                                                         ticker=ticker,
+                                                                                         mb=margin_bal,
+                                                                                         coll=collateral)
 
         self.insert_data(self.insert_query)
         self.close_connection()
