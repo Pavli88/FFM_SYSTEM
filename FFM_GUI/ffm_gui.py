@@ -179,12 +179,16 @@ class MainWindow(object):
         self.mdiArea_2.setMinimumSize(QtCore.QSize(0, 631))
         self.mdiArea_2.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.mdiArea_2.setViewMode(QtWidgets.QMdiArea.SubWindowView)
+        self.mdiArea_2.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.mdiArea_2.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.mdiArea_2.setObjectName("mdiArea_2")
         self.gridLayout_2.addWidget(self.mdiArea_2, 1, 0, 1, 1)
 
         # Second MDI Area
         self.mdiArea_3 = QtWidgets.QMdiArea(self.centralwidget)
         self.mdiArea_3.setViewMode(QtWidgets.QMdiArea.SubWindowView)
+        self.mdiArea_3.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.mdiArea_3.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.mdiArea_3.setObjectName("mdiArea_3")
         self.gridLayout_2.addWidget(self.mdiArea_3, 1, 1, 1, 1)
         self.port_tex_label.setText("Portfolio")
@@ -231,8 +235,23 @@ class MainWindow(object):
         self.menuPort_Management.setTitle("Portfolio Management")
         self.menubar.addAction(self.menuPort_Management.menuAction())
 
+        self.actionCharts = QtWidgets.QMenu(self.menuPort_Management)
+        self.actionCharts.setObjectName("actionCharts")
+        self.actionCharts.setTitle("Charts")
+        self.menuPort_Management.addAction(self.actionCharts.menuAction())
+
+        self.actionHolding_chart = QtWidgets.QAction(self.main_window)
+        self.actionHolding_chart.setObjectName("actionHolding_chart")
+        self.actionHolding_chart.setText("Portfolio Holdings")
+        self.actionCharts.addAction(self.actionHolding_chart)
+
+        self.actionReturn_analysis = QtWidgets.QAction(self.main_window)
+        self.actionReturn_analysis.setObjectName("actionReturn_analysis")
+        self.actionReturn_analysis.setText("Return Analysis")
+        self.actionCharts.addAction(self.actionReturn_analysis)
+
         self.actionPortfolio_Termination = QtWidgets.QAction(self.main_window)
-        self.actionPortfolio_Termination.setObjectName("actionSEC_gov")
+        self.actionPortfolio_Termination.setObjectName("actionPortfolio_Termination")
         self.actionPortfolio_Termination.setText("Portfolio Termination")
         self.menuPort_Management.addAction(self.actionPortfolio_Termination)
 
@@ -242,6 +261,9 @@ class MainWindow(object):
         self.menuPort_Management.addAction(self.actionIntraday_Data)
 
         # Actions
+
+        self.actionHolding_chart.triggered.connect(self.sub_port_holding)
+        self.actionReturn_analysis.triggered.connect(self.sub_port_return)
 
 # ========== Environments
         self.menuEnvironment = QtWidgets.QMenu(self.menubar)
@@ -372,11 +394,18 @@ class MainWindow(object):
 
         # Actions
 
-    def sub(self):
+    def sub_port_holding(self):
 
         self.subwindow = QtWidgets.QWidget()
-        self.subwindow.setObjectName("subwindow")
-        self.mdiArea.addSubWindow(self.subwindow)
+        self.subwindow.setObjectName("Portfolio Holding Analysis")
+        self.mdiArea_2.addSubWindow(self.subwindow)
+        self.subwindow.show()
+
+    def sub_port_return(self):
+
+        self.subwindow = QtWidgets.QWidget()
+        self.subwindow.setObjectName("Portfolio Return Analysis")
+        self.mdiArea_2.addSubWindow(self.subwindow)
         self.subwindow.show()
 
     def import_portfolio_data(self):
