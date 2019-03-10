@@ -559,7 +559,7 @@ class FfmProcess:
                         self.pos_lenght = self.pos_lenght["count(*)"][0]
                         print("Data base position id starts from ", self.pos_lenght)
                         print("Processing positions:")
-                        
+
                         # Security level calculations
 
                         for pos in range(len(list(self.pos_sec_data["pos_id"]))):
