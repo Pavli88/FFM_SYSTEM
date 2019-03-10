@@ -1149,6 +1149,7 @@ class TradeEntry(object):
 
         self.quantity = list(self.sec_data["quantity"])[0] * -1
         self.margin = list(self.sec_data["margin_bal"])[0] * -1
+        self.coll = self.sec_data["margin_bal"][0] * -1
 
         Entries(data_base=self.data_base,
                 user_name=self.user_name,
@@ -1164,7 +1165,8 @@ class TradeEntry(object):
                                               sec_id=list(self.sec_data["sec_id"])[0],
                                               leverage_perc=0,
                                               ticker=list(self.sec_data["ticker"])[0],
-                                              margin_bal=self.margin)
+                                              margin_bal=self.margin,
+                                              collateral=self.coll)
 
         # Cashflow
 
@@ -1209,8 +1211,10 @@ class TradeEntry(object):
 
             if side == "SELL":
                 self.quantity = int(self.text_input_2.text()) * -1
+                self.collateral_bal = self.quantity * float(self.last_price)*-2
             else:
                 self.quantity = int(self.text_input_2.text())
+                self.collateral_bal = 0
 
             if self.leverage == "Yes":
 
@@ -1249,7 +1253,8 @@ class TradeEntry(object):
                                                           sec_id=list(self.sec_data["sec_id"])[0],
                                                           leverage_perc=self.doubleSpinBox.value(),
                                                           ticker=list(self.sec_data["ticker"])[0],
-                                                          margin_bal=self.margin)
+                                                          margin_bal=self.margin,
+                                                          collateral=self.collateral_bal)
 
 
                     Entries(data_base=self.data_base,
@@ -1286,7 +1291,8 @@ class TradeEntry(object):
                                                       sec_id=list(self.sec_data["sec_id"])[0],
                                                       leverage_perc=self.doubleSpinBox.value(),
                                                       ticker=list(self.sec_data["ticker"])[0],
-                                                      margin_bal=int(self.text_input_2.text())*float(self.last_price)*-1*(float(self.doubleSpinBox.value())/100))
+                                                      margin_bal=int(self.text_input_2.text())*float(self.last_price)*-1*(float(self.doubleSpinBox.value())/100),
+                                                      collateral=self.collateral_bal)
 
                 # Cash flow side of the trade
 
