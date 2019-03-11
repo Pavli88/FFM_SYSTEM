@@ -1,6 +1,8 @@
 from FFM_SYSTEM.FFM_GUI.entries import *
 from datetime import date
 
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 
 class MainWindow(object):
 
@@ -397,8 +399,25 @@ class MainWindow(object):
     def sub_port_holding(self):
 
         self.subwindow = QtWidgets.QWidget()
-        self.subwindow.setObjectName("Portfolio Holding Analysis")
+        self.subwindow.setObjectName("Portfolio_Holding_Analysis")
+        self.subwindow.setWindowTitle("Portfolio Holding Analysis")
         self.mdiArea_2.addSubWindow(self.subwindow)
+
+        self.dpi = 100
+        self.fig = Figure((10.0, 4.0), dpi=self.dpi)
+        self.canvas = FigureCanvas(self.fig)
+        self.canvas.setParent(self.subwindow)
+
+        self.axes = self.fig.add_subplot(111)
+
+        # Layout with box sizers
+
+        hbox = QHBoxLayout()
+        vbox = QVBoxLayout()
+        vbox.addWidget(self.canvas)
+        vbox.addLayout(hbox)
+
+        self.subwindow.setLayout(vbox)
         self.subwindow.show()
 
     def sub_port_return(self):
