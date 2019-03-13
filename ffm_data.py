@@ -2,6 +2,9 @@ import mysql.connector as sql
 import pandas as pd
 import requests
 import numpy as np
+import fix_yahoo_finance as fyf
+from pandas.plotting import scatter_matrix
+import matplotlib.pyplot as plt
 
 
 class SQL:
@@ -55,6 +58,54 @@ class SQL:
         """
 
         self.db_connection.close()
+
+
+class StockData:
+
+    def __init__(self, stock_list, start_date):
+
+        self.returns = None
+        self.stocks = stock_list
+        self.stock_data = fyf.download(self.stocks, start=start_date)
+
+    def stock_data_frame(self):
+
+        return self.stock_data
+
+    def close_prices(self):
+
+        self.stock_data = self.stock_data["Close"]
+
+        return self.stock_data
+
+    def daily_returns(self):
+
+        self.returns = pd.DataFrame()
+        self.stock_data = self.stock_data["Close"]
+
+        for stock in self.stock_data:
+            if stock not in self.returns:
+                self.returns[stock] = np.log(self.stock_data[stock]).diff()
+
+        return self.returns
+
+    def describe_returns(self):
+
+        self.returns = self.daily_returns()
+
+        return self.returns.describe()
+
+    def correlations(self):
+
+        self.returns = self.daily_returns()
+        self.correl = self.returns.corr()
+
+        return self.correl
+
+    def scatter_matrix_plot(self):
+
+        scatter_matrix(self.daily_returns(), figsize=(16, 12), alpha=0.5)
+        plt.show()
 
 
 class OnlineData:
@@ -214,6 +265,7 @@ class OnlineData:
         self.data_frame = pd.read_json(self.r.text)
 
         return self.data_frame
+
 
 class Entries(SQL):
 
@@ -610,6 +662,7 @@ class Entries(SQL):
 
         self.insert_data(self.insert_query)
         self.close_connection()
+
 
 if __name__ == "__main__":
 
