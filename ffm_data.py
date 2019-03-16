@@ -4,6 +4,7 @@ import requests
 import numpy as np
 import fix_yahoo_finance as fyf
 from pandas.plotting import scatter_matrix
+import os
 
 
 class SQL:

@@ -2,7 +2,114 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox, QHBoxLayout, QVBoxLayout
 import sys
 from FFM_SYSTEM.ffm_data import *
+import datetime
 from datetime import date
+from pandas.tseries.offsets import BDay
+
+
+class ProcessManager:
+
+    def __init__(self, dialog, data_base, user_name, password):
+
+        self.Dialog = dialog
+        self.data_base = data_base
+        self.user_name = user_name
+        self.password = password
+
+    def portfolio_holding_calculator(self):
+
+        self.get_port_data = SQL(data_base=self.data_base,
+                                 user_name=self.user_name,
+                                 password=self.password).select_data("""select portfolio_name, inception_date 
+                                                                        from portfolios 
+                                                                        where portfolio_group = 'No'
+                                                                        and portfolio_type != 'SAVING'""")
+
+        self.Dialog.setObjectName("Dialog")
+        self.Dialog.resize(215, 138)
+
+        self.pushButton = QtWidgets.QPushButton(self.Dialog)
+        self.pushButton.setGeometry(QtCore.QRect(30, 110, 151, 21))
+        self.pushButton.setObjectName("pushButton")
+
+        self.widget = QtWidgets.QWidget(self.Dialog)
+        self.widget.setGeometry(QtCore.QRect(10, 10, 195, 91))
+        self.widget.setObjectName("widget")
+        self.gridLayout = QtWidgets.QGridLayout(self.widget)
+        self.gridLayout.setContentsMargins(0, 0, 0, 0)
+        self.gridLayout.setObjectName("gridLayout")
+        self.label = QtWidgets.QLabel(self.widget)
+        self.label.setObjectName("label")
+        self.gridLayout.addWidget(self.label, 0, 0, 1, 1)
+
+        self.comboBox = QtWidgets.QComboBox(self.widget)
+        self.comboBox.setObjectName("comboBox")
+        self.comboBox.addItems(list(self.get_port_data["portfolio_name"]))
+
+        self.gridLayout.addWidget(self.comboBox, 0, 1, 1, 1)
+        self.label_2 = QtWidgets.QLabel(self.widget)
+        self.label_2.setObjectName("label_2")
+        self.gridLayout.addWidget(self.label_2, 1, 0, 1, 1)
+
+        self.dateEdit = QtWidgets.QDateEdit(self.widget)
+        self.dateEdit.setObjectName("dateEdit")
+        self.dateEdit.setDate(QtCore.QDate(date.today().year, date.today().month, date.today().day))
+
+        self.gridLayout.addWidget(self.dateEdit, 1, 1, 1, 1)
+        self.label_3 = QtWidgets.QLabel(self.widget)
+        self.label_3.setObjectName("label_3")
+        self.gridLayout.addWidget(self.label_3, 2, 0, 1, 1)
+
+        self.dateEdit_2 = QtWidgets.QDateEdit(self.widget)
+        self.dateEdit_2.setObjectName("dateEdit_2")
+        self.dateEdit_2.setDate(QtCore.QDate(date.today().year, date.today().month, date.today().day))
+
+        self.gridLayout.addWidget(self.dateEdit_2, 2, 1, 1, 1)
+
+        self.Dialog.setWindowTitle("Portfolio Holding Calculator")
+        self.pushButton.setText("Calculate")
+        self.label.setText("Portfolio")
+        self.label_2.setText("Start Date")
+        self.label_3.setText("End Date")
+
+    def calc_holding(self):
+
+        if self.dateEdit.date() > self.dateEdit_2.date():
+            print("Start date is larger than End date. Calculation is stopped")
+        else:
+            self.get_port_data = self.get_port_data[self.get_port_data["portfolio_name"] == self.comboBox.currentText()]
+
+            if list(self.get_port_data["inception_date"])[0] > self.dateEdit.date():
+                print("Holding start calculation date is less than portfolio inception date. Calculation is stopped")
+            else:
+
+                self.start_date = self.dateEdit.text().replace(". ", "-").replace(".", "")
+                self.start_date = datetime.datetime.strptime(self.start_date, '%Y-%m-%d')
+
+                self.end_date = self.dateEdit_2.text().replace(". ", "-").replace(".", "")
+                self.end_date = datetime.datetime.strptime(self.end_date, '%Y-%m-%d')
+
+                while self.start_date <= self.end_date:
+                    self.start_date = self.start_date+BDay(1)
+
+                    if self.data_base == "dev_ffm_sys":
+                        self.env = "dev"
+                    else:
+                        self.env = "live"
+
+                    pos_cmd = """/home/apavlics/Developement/FFM_DEV/bin/python3.6 /home/apavlics/Developement/FFM_DEV/Codes/FFM_SYSTEM/ffm_process.py --db_user_name {user_name} --db_password {password} --env {env} --pos_calc Yes --portfolio {port} --rundate {date}""".format(user_name=self.user_name, password=self.password, port=self.comboBox.currentText(), date=str(self.start_date)[0:10].replace("-", ""), env=self.env)
+                    os.system(pos_cmd)
+
+                    nav_cmd = """/home/apavlics/Developement/FFM_DEV/bin/python3.6 /home/apavlics/Developement/FFM_DEV/Codes/FFM_SYSTEM/ffm_process.py --db_user_name {user_name} --db_password {password} --env {env} --nav_calc Yes --portfolio {port} --rundate {date}""".format(
+                            user_name=self.user_name, password=self.password, port=self.comboBox.currentText(),
+                            date=str(self.start_date)[0:10].replace("-", ""), env=self.env)
+
+                    os.system(nav_cmd)
+
+                    hold_cmd = """/home/apavlics/Developement/FFM_DEV/bin/python3.6 /home/apavlics/Developement/FFM_DEV/Codes/FFM_SYSTEM/ffm_process.py --db_user_name {user_name} --db_password {password} --env {env} --hold_calc Yes --portfolio {port} --rundate {date}""".format(
+                            user_name=self.user_name, password=self.password, port=self.comboBox.currentText(),
+                            date=str(self.start_date)[0:10].replace("-", ""), env=self.env)
+                    os.system(hold_cmd)
 
 
 class EntryWindows:

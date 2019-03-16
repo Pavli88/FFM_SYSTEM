@@ -395,12 +395,27 @@ class MainWindow(object):
         self.menuProcess.addAction(self.menuCalculations2.menuAction())
 
         # Actions
+        self.actionPortfolio_Holding.triggered.connect(self.port_hold_calc)
+
+    def port_hold_calc(self):
+
+        Dialog = QtWidgets.QDialog()
+        proc_man = ProcessManager(dialog=Dialog,
+                                  data_base=self.db,
+                                  user_name=self.user_name,
+                                  password=self.password)
+
+        proc_man.portfolio_holding_calculator()
+        proc_man.pushButton.clicked.connect(proc_man.calc_holding)
+        Dialog.show()
+        Dialog.exec_()
 
     def sub_port_holding(self):
 
         self.subwindow = QtWidgets.QWidget()
         self.subwindow.setObjectName("Portfolio_Holding_Analysis")
         self.subwindow.setWindowTitle("Portfolio Holding Analysis")
+        self.subwindow.setMinimumSize(QtCore.QSize(200, 500))
         self.mdiArea_2.addSubWindow(self.subwindow)
 
         self.dpi = 100

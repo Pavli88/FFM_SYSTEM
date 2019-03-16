@@ -22,7 +22,7 @@ class EqPortVar:
                                                                               ph.weight 
                                                                               from portfolio_holdings ph, portfolios p 
                                                                               where ph.portfolio_id = p.portfolio_id 
-                                                                              and ph.date = '20190305' 
+                                                                              and ph.date = '20190315' 
                                                                               and ph.type = 'EQUITY' 
                                                             and p.portfolio_name = '{port}'""".format(port=portfolio))
 
@@ -31,7 +31,7 @@ class EqPortVar:
                             password="").select_data(select_query="""select pn.total_nav 
                                                                              from portfolio_nav pn, portfolios p 
                                                                              where pn.portfolio_code = p.portfolio_id 
-                                                                             and pn.date = '20190305' 
+                                                                             and pn.date = '20190315' 
                                                             and p.portfolio_name = '{port}'""".format(port=portfolio))
 
         print("PORTFOLIO POSITIONS")
@@ -93,7 +93,7 @@ class EqPortVar:
 
 if __name__ == "__main__":
 
-    EqPortVar(std_dev_hor="yearly", portfolio="TRD-1", conf_level=0.99)
+    EqPortVar(std_dev_hor="daily", portfolio="TRD-1", conf_level=0.99)
 
     # x["FB"].plot()
     # plt.show()

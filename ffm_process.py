@@ -226,7 +226,7 @@ class FfmProcess:
                         self.trade = self.trades[self.trades["sec_id"] == self.pos["sec_id"]]
                         self.close_bal = sum(list(self.trade["quantity"]))
 
-                        if self.pos["name"] == "Margin":
+                        if (self.pos["name"] == "Margin") or (self.pos["name"] == "Collateral"):
                             pass
                         else:
                             self.new_bal = self.close_bal
@@ -237,14 +237,17 @@ class FfmProcess:
                             print("Close balance:", self.new_bal+self.pos["close_bal"])
                             print("Writing data to data base")
 
-                            Entries(data_base=self.data_base,
-                                    user_name=args.db_user_name,
-                                    password=args.db_password).positions(date=self.query_date,
-                                                                         portfolio_code=self.pos["portfolio_code"],
-                                                                         strategy_code=self.pos["strategy_code"],
-                                                                         open_bal=self.pos["close_bal"],
-                                                                         close_bal=self.new_bal+self.pos["close_bal"],
-                                                                         sec_id=self.pos["sec_id"])
+                            if self.pos["close_bal"] == 0:
+                                print(self.pos["name"], "was traded out from the portfolio on previous day!")
+                            else:
+                                Entries(data_base=self.data_base,
+                                        user_name=args.db_user_name,
+                                        password=args.db_password).positions(date=self.query_date,
+                                                                             portfolio_code=self.pos["portfolio_code"],
+                                                                             strategy_code=self.pos["strategy_code"],
+                                                                             open_bal=self.pos["close_bal"],
+                                                                             close_bal=self.new_bal+self.pos["close_bal"],
+                                                                             sec_id=self.pos["sec_id"])
                             print("")
 
                     print("PROCESSING NEW TRADES AND CALCULATING POSITION BALANCE")
