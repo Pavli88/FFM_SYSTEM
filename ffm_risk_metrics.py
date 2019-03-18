@@ -5,7 +5,7 @@ from datetime import date
 
 class EqPortVar:
 
-    def __init__(self, std_dev_hor, portfolio, conf_level):
+    def __init__(self, db, user_name, portfolio, password, port_date, conf_level=0.95, std_dev_hor="daily"):
 
         print("********************************************")
         print("         PORTFOLIO VAR CALCULATION          ")
@@ -14,25 +14,26 @@ class EqPortVar:
         if conf_level == 0.99:
             self.multiplier = 2.33
         elif conf_level == 0.95:
-            self.multiplier == 1.65
+            self.multiplier = 1.65
 
-        self.port_data = SQL(data_base="",
-                             user_name="",
-                             password="").select_data(select_query="""select ph.ticker, ph.market_value, 
-                                                                              ph.weight 
-                                                                              from portfolio_holdings ph, portfolios p 
-                                                                              where ph.portfolio_id = p.portfolio_id 
-                                                                              and ph.date = '20190315' 
-                                                                              and ph.type = 'EQUITY' 
-                                                            and p.portfolio_name = '{port}'""".format(port=portfolio))
+        self.port_data = SQL(data_base=db,
+                             user_name=user_name,
+                             password=password).select_data(select_query="""select ph.ticker, ph.market_value, ph.weight 
+                                                                            from portfolio_holdings ph, portfolios p 
+                                                                            where ph.portfolio_id = p.portfolio_id 
+                                                                            and ph.date = '{date}' 
+                                                                            and ph.type = 'EQUITY' 
+                                                            and p.portfolio_name = '{port}'""".format(port=portfolio,
+                                                                                                      date=port_date))
 
-        self.port_nav = SQL(data_base="",
-                            user_name="",
-                            password="").select_data(select_query="""select pn.total_nav 
-                                                                             from portfolio_nav pn, portfolios p 
-                                                                             where pn.portfolio_code = p.portfolio_id 
-                                                                             and pn.date = '20190315' 
-                                                            and p.portfolio_name = '{port}'""".format(port=portfolio))
+        self.port_nav = SQL(data_base=db,
+                            user_name=user_name,
+                            password=password).select_data(select_query="""select pn.total_nav 
+                                                                           from portfolio_nav pn, portfolios p 
+                                                                           where pn.portfolio_code = p.portfolio_id 
+                                                                           and pn.date = '{date}' 
+                                                            and p.portfolio_name = '{port}'""".format(port=portfolio,
+                                                                                                      date=port_date))
 
         print("PORTFOLIO POSITIONS")
         print(self.port_data)
@@ -90,10 +91,18 @@ class EqPortVar:
         print("VAR %:", list(self.port_var["total_nav"])[0]/list(self.port_nav["total_nav"])[0])
         print(len("VAR Value: " + str(list(self.port_var["total_nav"])[0])) * "=")
 
+    def get_port_var(self):
+
+        return list(self.port_var["total_nav"])[0]
+
+    def get_port_var_perc(self):
+
+        return list(self.port_var["total_nav"])[0]/list(self.port_nav["total_nav"])[0]
+
 
 if __name__ == "__main__":
 
-    EqPortVar(std_dev_hor="daily", portfolio="TRD-1", conf_level=0.99)
+    EqPortVar(portfolio="TRD-1")
 
     # x["FB"].plot()
     # plt.show()

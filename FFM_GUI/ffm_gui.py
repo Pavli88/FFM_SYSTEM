@@ -1,8 +1,12 @@
 from FFM_SYSTEM.FFM_GUI.entries import *
-from datetime import date
-
+from FFM_SYSTEM.ffm_risk_metrics import *
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+from datetime import date
+import time
+from datetime import timedelta
+from _datetime import datetime
+from pandas.tseries.offsets import BDay
 
 class MainWindow(object):
 
@@ -12,6 +16,35 @@ class MainWindow(object):
         self.password = None
         self.db = None
         self.login()
+
+        self.begtime = time.strftime("%H:%M:%S")
+        self.today = date.today()
+
+        if self.today.weekday() == 0:
+
+            if self.begtime > "22:18:00":
+                self.portdate = self.today
+            else:
+                self.delta = timedelta(days=-3)
+                self.portdate = self.today + self.delta
+
+        elif self.today.weekday() == 6:
+
+            self.delta = timedelta(days=-2)
+            self.portdate = self.today + self.delta
+
+        elif self.today.weekday() == 5:
+
+            self.delta = timedelta(days=-1)
+            self.portdate = self.today + self.delta
+
+        else:
+
+            if self.begtime < "15:00:00":
+                self.delta = timedelta(days=-1)
+                self.portdate = self.today + self.delta
+            else:
+                self.portdate = self.today
 
     def login(self):
 
@@ -115,6 +148,7 @@ class MainWindow(object):
         self.portfolio_frame.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.portfolio_frame.setFrameShadow(QtWidgets.QFrame.Raised)
         self.portfolio_frame.setObjectName("portfolio_frame")
+
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.portfolio_frame)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.port_tex_label = QtWidgets.QLabel(self.portfolio_frame)
@@ -137,7 +171,7 @@ class MainWindow(object):
         self.port_date_label.setObjectName("port_date_label")
         self.horizontalLayout.addWidget(self.port_date_label)
         self.port_date_edit = QtWidgets.QDateEdit(self.portfolio_frame)
-        self.port_date_edit.setDate(QtCore.QDate(date.today().year, date.today().month, date.today().day))
+        self.port_date_edit.setDate(QtCore.QDate(self.portdate.year, self.portdate.month, self.portdate.day))
         self.port_date_edit.setObjectName("port_date_edit")
         self.horizontalLayout.addWidget(self.port_date_edit)
 
@@ -159,8 +193,8 @@ class MainWindow(object):
         sizePolicy.setHeightForWidth(self.port_full_name_label.sizePolicy().hasHeightForWidth())
         self.port_full_name_label.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
-        font.setFamily("FreeSerif")
-        font.setPointSize(14)
+        font.setFamily("Ubuntu")
+        font.setPointSize(11)
         font.setBold(True)
         font.setWeight(75)
         self.port_full_name_label.setFont(font)
@@ -168,13 +202,6 @@ class MainWindow(object):
         self.horizontalLayout.addWidget(self.port_full_name_label)
 
         self.gridLayout_2.addWidget(self.portfolio_frame, 0, 0, 1, 1)
-
-        # Empty frame currently
-        self.frame_4 = QtWidgets.QFrame(self.centralwidget)
-        self.frame_4.setFrameShape(QtWidgets.QFrame.StyledPanel)
-        self.frame_4.setFrameShadow(QtWidgets.QFrame.Raised)
-        self.frame_4.setObjectName("frame_4")
-        self.gridLayout_2.addWidget(self.frame_4, 0, 1, 1, 1)
 
         # Portfolio Management MDI Area
         self.mdiArea_2 = QtWidgets.QMdiArea(self.centralwidget)
@@ -186,13 +213,6 @@ class MainWindow(object):
         self.mdiArea_2.setObjectName("mdiArea_2")
         self.gridLayout_2.addWidget(self.mdiArea_2, 1, 0, 1, 1)
 
-        # Second MDI Area
-        self.mdiArea_3 = QtWidgets.QMdiArea(self.centralwidget)
-        self.mdiArea_3.setViewMode(QtWidgets.QMdiArea.SubWindowView)
-        self.mdiArea_3.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
-        self.mdiArea_3.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
-        self.mdiArea_3.setObjectName("mdiArea_3")
-        self.gridLayout_2.addWidget(self.mdiArea_3, 1, 1, 1, 1)
         self.port_tex_label.setText("Portfolio")
         self.port_date_label.setText("Date")
         self.port_import_button.setText("Run")
@@ -450,8 +470,18 @@ class MainWindow(object):
                                                                         from portfolios 
                                 where portfolio_name = '{port_name}'""".format(port_name=self.port_search_line.text()))
 
-        self.port_full_name_label.setText(str(self.get_port_data["full_name"][0]) +
-                                          " - " + str(self.get_port_data["portfolio_type"][0]))
+        if (list(self.get_port_data["portfolio_type"])[0] == "TRADE") or \
+                (list(self.get_port_data["portfolio_type"])[0] == "INVESTMENT"):
+
+            self.port_var = EqPortVar(db=self.db,
+                                      user_name=self.user_name,
+                                      password=self.password,
+                                      portfolio=self.port_search_line.text(),
+                                      port_date=str(self.port_date_edit.text()).replace(". ", "").replace(".", ""))
+
+            self.port_full_name_label.setText(str(self.get_port_data["full_name"][0]) +
+                                              " - " + str(self.get_port_data["portfolio_type"][0]) + "   VAR 95%: " +
+                                              str(round(self.port_var.get_port_var_perc()*100, 2)) + "%")
 
     def port_entry(self):
 
