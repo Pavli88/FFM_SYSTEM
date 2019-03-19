@@ -5,8 +5,7 @@ from matplotlib.figure import Figure
 from datetime import date
 import time
 from datetime import timedelta
-from _datetime import datetime
-from pandas.tseries.offsets import BDay
+
 
 class MainWindow(object):
 
@@ -464,24 +463,41 @@ class MainWindow(object):
 
     def import_portfolio_data(self):
 
-        self.get_port_data = SQL(data_base=self.db,
-                                 user_name=self.user_name,
-                                 password=self.password).select_data("""select full_name, portfolio_type 
-                                                                        from portfolios 
-                                where portfolio_name = '{port_name}'""".format(port_name=self.port_search_line.text()))
+        if self.port_date_edit.date() == self.today:
+            MsgBoxes().info_box(message="Portfolio Holding data was not yet calculated!", title="Notification")
+        else:
+            self.get_port_data = SQL(data_base=self.db,
+                                     user_name=self.user_name,
+                                     password=self.password).select_data("""select full_name, portfolio_type 
+                                                                            from portfolios 
+                                    where portfolio_name = '{port_name}'""".format(port_name=self.port_search_line.text()))
 
-        if (list(self.get_port_data["portfolio_type"])[0] == "TRADE") or \
-                (list(self.get_port_data["portfolio_type"])[0] == "INVESTMENT"):
+            # Portfolio Var calculation, running with VAR95 parameter
 
-            self.port_var = EqPortVar(db=self.db,
-                                      user_name=self.user_name,
-                                      password=self.password,
-                                      portfolio=self.port_search_line.text(),
-                                      port_date=str(self.port_date_edit.text()).replace(". ", "").replace(".", ""))
+            if (list(self.get_port_data["portfolio_type"])[0] == "TRADE") or \
+                    (list(self.get_port_data["portfolio_type"])[0] == "INVESTMENT"):
 
-            self.port_full_name_label.setText(str(self.get_port_data["full_name"][0]) +
-                                              " - " + str(self.get_port_data["portfolio_type"][0]) + "   VAR 95%: " +
-                                              str(round(self.port_var.get_port_var_perc()*100, 2)) + "%")
+                self.port_var = EqPortVar(db=self.db,
+                                          user_name=self.user_name,
+                                          password=self.password,
+                                          portfolio=self.port_search_line.text(),
+                                          port_date=str(self.port_date_edit.text()).replace(". ", "").replace(".", ""))
+
+                self.dd = PortDrawDown(db=self.db,
+                                       user_name=self.user_name,
+                                       password=self.password,
+                                       portfolio=self.port_search_line.text())
+
+                self.nav_dd = self.dd.nav_drawdown()
+                self.aum_dd = self.dd.aum_drawdown()
+
+                self.port_full_name_label.setText(str(self.get_port_data["full_name"][0]) +
+                                                  " - " + str(self.get_port_data["portfolio_type"][0]) + "   VAR 95%: "+
+                                                  str(round(self.port_var.get_port_var_perc()*100, 2)) + "%" +
+                                                  "   NAV Drawdown: " + str(self.nav_dd) + "   AUM Drawdown: " +
+                                                  str(self.aum_dd))
+
+                # Widget update
 
     def port_entry(self):
 

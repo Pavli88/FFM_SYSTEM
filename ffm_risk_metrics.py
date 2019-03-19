@@ -100,12 +100,35 @@ class EqPortVar:
         return list(self.port_var["total_nav"])[0]/list(self.port_nav["total_nav"])[0]
 
 
+class PortDrawDown:
+
+    def __init__(self, db, user_name, portfolio, password,):
+
+        self.port_nav = SQL(data_base=db,
+                            user_name=user_name,
+                            password=password).select_data(select_query="""select pn.total_nav, pn.aum from
+                                                                           portfolio_nav pn, portfolios p
+                                                                           where pn.portfolio_code = p.portfolio_id 
+                                                    and p.portfolio_name = '{port_name}'""".format(port_name=portfolio))
+
+    def nav_drawdown(self):
+
+        self.nav_values = list(self.port_nav["total_nav"])[1:]
+        self.nav_dd = round((1-(self.nav_values[-1]/np.max(self.nav_values)))*100, 2)
+
+        return self.nav_dd
+
+    def aum_drawdown(self):
+
+        self.aum_values = list(self.port_nav["aum"])[1:]
+        self.aum_dd = round((1 - (self.aum_values[-1] / np.max(self.aum_values))) * 100, 2)
+
+        return self.aum_dd
+
+
 if __name__ == "__main__":
 
-    EqPortVar(portfolio="TRD-1")
-
-    # x["FB"].plot()
-    # plt.show()
+    pass
 
 
 

@@ -90,7 +90,6 @@ class ProcessManager:
                 self.end_date = datetime.datetime.strptime(self.end_date, '%Y-%m-%d')
 
                 while self.start_date <= self.end_date:
-                    self.start_date = self.start_date+BDay(1)
 
                     if self.data_base == "dev_ffm_sys":
                         self.env = "dev"
@@ -110,6 +109,8 @@ class ProcessManager:
                             user_name=self.user_name, password=self.password, port=self.comboBox.currentText(),
                             date=str(self.start_date)[0:10].replace("-", ""), env=self.env)
                     os.system(hold_cmd)
+
+                    self.start_date = self.start_date + BDay(1)
 
 
 class EntryWindows:
