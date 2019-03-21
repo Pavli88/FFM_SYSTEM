@@ -472,6 +472,8 @@ class MainWindow(object):
                                                                             from portfolios 
                                     where portfolio_name = '{port_name}'""".format(port_name=self.port_search_line.text()))
 
+            print(self.get_port_data)
+
             # Portfolio Var calculation, running with VAR95 parameter
 
             if (list(self.get_port_data["portfolio_type"])[0] == "TRADE") or \
