@@ -166,12 +166,27 @@ class MainWindow(object):
         self.port_completer = QtWidgets.QCompleter(list(self.load_port_list["portfolio_name"]))
         self.port_search_line.setCompleter(self.port_completer)
 
+        self.port_date_label_2 = QtWidgets.QLabel(self.portfolio_frame)
+        self.port_date_label_2.setObjectName("port_date_label_2")
+        self.gridLayout_2.addWidget(self.port_date_label_2, 0, 2, 1, 1)
+        self.horizontalLayout.addWidget(self.port_date_label_2)
+        self.port_date_label_2.setText("Start Date")
+
+        self.port_date_edit_2 = QtWidgets.QDateEdit(self.portfolio_frame)
+        self.port_date_edit_2.setDate(QtCore.QDate(self.portdate.year, self.portdate.month, self.portdate.day))
+        self.port_date_edit_2.setObjectName("port_date_edit_2")
+        self.gridLayout_2.addWidget(self.port_date_edit_2, 0, 3, 1, 1)
+        self.horizontalLayout.addWidget(self.port_date_edit_2)
+
         self.port_date_label = QtWidgets.QLabel(self.portfolio_frame)
         self.port_date_label.setObjectName("port_date_label")
+        self.gridLayout_2.addWidget(self.port_date_label, 0, 4, 1, 1)
         self.horizontalLayout.addWidget(self.port_date_label)
+
         self.port_date_edit = QtWidgets.QDateEdit(self.portfolio_frame)
         self.port_date_edit.setDate(QtCore.QDate(self.portdate.year, self.portdate.month, self.portdate.day))
         self.port_date_edit.setObjectName("port_date_edit")
+        self.gridLayout_2.addWidget(self.port_date_edit, 0, 5, 1, 1)
         self.horizontalLayout.addWidget(self.port_date_edit)
 
         self.port_import_button = QtWidgets.QPushButton(self.portfolio_frame)
@@ -213,7 +228,7 @@ class MainWindow(object):
         self.gridLayout_2.addWidget(self.mdiArea_2, 1, 0, 1, 1)
 
         self.port_tex_label.setText("Portfolio")
-        self.port_date_label.setText("Date")
+        self.port_date_label.setText("End Date")
         self.port_import_button.setText("Run")
 
         # Menu bar object definition
@@ -431,18 +446,33 @@ class MainWindow(object):
 
     def sub_port_holding(self):
 
+        self.get_port_data = SQL(data_base=self.db,
+                                 user_name=self.user_name,
+                                 password=self.password).select_data("""select*from portfolio_nav pn, portfolios p 
+                                                                                    where pn.portfolio_code = p.portfolio_id 
+                                                                                    and p.portfolio_name = '{port_name}' 
+                                                                                    and pn.date between '{start_date}' 
+                                                                                    and'{end_date}'""".format(
+            port_name=self.port_search_line.text(),
+            start_date=self.port_date_edit_2.text().replace(". ", ""),
+            end_date=self.port_date_edit.text().replace(". ", "")))
+
+        print(self.get_port_data)
+
         self.subwindow = QtWidgets.QWidget()
         self.subwindow.setObjectName("Portfolio_Holding_Analysis")
         self.subwindow.setWindowTitle("Portfolio Holding Analysis")
-        self.subwindow.setMinimumSize(QtCore.QSize(200, 500))
+        self.subwindow.setMinimumSize(QtCore.QSize(600, 300))
         self.mdiArea_2.addSubWindow(self.subwindow)
 
         self.dpi = 100
-        self.fig = Figure((10.0, 4.0), dpi=self.dpi)
+        self.fig = Figure((10.0, 5.0), dpi=self.dpi)
         self.canvas = FigureCanvas(self.fig)
         self.canvas.setParent(self.subwindow)
 
-        self.axes = self.fig.add_subplot(111)
+        self.ax = self.fig.add_subplot(111)
+        self.ax.plot(self.get_port_data["total_nav"])
+        self.ax.plot(self.get_port_data["aum"])
 
         # Layout with box sizers
 
@@ -463,43 +493,43 @@ class MainWindow(object):
 
     def import_portfolio_data(self):
 
-        if self.port_date_edit.date() == self.today:
-            MsgBoxes().info_box(message="Portfolio Holding data was not yet calculated!", title="Notification")
+        if len(self.port_search_line.text()) == 0:
+            MsgBoxes().info_box(message="Portfolio is not selected!", title="Notification")
         else:
             self.get_port_data = SQL(data_base=self.db,
                                      user_name=self.user_name,
-                                     password=self.password).select_data("""select full_name, portfolio_type 
-                                                                            from portfolios 
-                                    where portfolio_name = '{port_name}'""".format(port_name=self.port_search_line.text()))
+                                     password=self.password).select_data("""select*from portfolio_nav pn, portfolios p 
+                                                                            where pn.portfolio_code = p.portfolio_id 
+                                                                            and p.portfolio_name = '{port_name}' 
+                                                                            and pn.date = '{date}'""".format(
+                                                                                port_name=self.port_search_line.text(),
+                                                                                date=self.port_date_edit.text().replace(". ", "")))
 
-            print(self.get_port_data)
+            if len(list(self.get_port_data["portfolio_code"])) == 0:
+                MsgBoxes().info_box(message="Portfolio Holding data was not yet calculated!", title="Notification")
+            else:
+                print(self.get_port_data)
 
-            # Portfolio Var calculation, running with VAR95 parameter
+                # Portfolio Var calculation, running with VAR95 parameter
 
-            if (list(self.get_port_data["portfolio_type"])[0] == "TRADE") or \
-                    (list(self.get_port_data["portfolio_type"])[0] == "INVESTMENT"):
+                if (list(self.get_port_data["portfolio_type"])[0] == "TRADE") or \
+                        (list(self.get_port_data["portfolio_type"])[0] == "INVESTMENT"):
 
-                self.port_var = EqPortVar(db=self.db,
-                                          user_name=self.user_name,
-                                          password=self.password,
-                                          portfolio=self.port_search_line.text(),
-                                          port_date=str(self.port_date_edit.text()).replace(". ", "").replace(".", ""))
+                    self.dd = PortDrawDown(db=self.db,
+                                           user_name=self.user_name,
+                                           password=self.password,
+                                           portfolio=self.port_search_line.text())
 
-                self.dd = PortDrawDown(db=self.db,
-                                       user_name=self.user_name,
-                                       password=self.password,
-                                       portfolio=self.port_search_line.text())
+                    self.nav_dd = self.dd.nav_drawdown()
+                    self.aum_dd = self.dd.aum_drawdown()
 
-                self.nav_dd = self.dd.nav_drawdown()
-                self.aum_dd = self.dd.aum_drawdown()
+                    self.port_full_name_label.setText(str(self.get_port_data["full_name"][0]) +
+                                                      " - " + str(self.get_port_data["portfolio_type"][0]) +
+                                                      "   VAR 95%: "+ str(round(list(self.get_port_data["d_var_95_p"])[0]*100, 2)) + "%" +
+                                                      "   NAV Drawdown: " + str(self.nav_dd) + "   AUM Drawdown: " +
+                                                      str(self.aum_dd))
 
-                self.port_full_name_label.setText(str(self.get_port_data["full_name"][0]) +
-                                                  " - " + str(self.get_port_data["portfolio_type"][0]) + "   VAR 95%: "+
-                                                  str(round(self.port_var.get_port_var_perc()*100, 2)) + "%" +
-                                                  "   NAV Drawdown: " + str(self.nav_dd) + "   AUM Drawdown: " +
-                                                  str(self.aum_dd))
-
-                # Widget update
+                    # Widget update
 
     def port_entry(self):
 
