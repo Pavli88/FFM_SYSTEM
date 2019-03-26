@@ -26,7 +26,7 @@ class ProcessManager:
                                                                         and portfolio_type != 'SAVING'""")
 
         self.Dialog.setObjectName("Dialog")
-        self.Dialog.resize(215, 138)
+        self.Dialog.resize(360, 137)
 
         self.pushButton = QtWidgets.QPushButton(self.Dialog)
         self.pushButton.setGeometry(QtCore.QRect(30, 110, 151, 21))
@@ -66,7 +66,33 @@ class ProcessManager:
 
         self.gridLayout.addWidget(self.dateEdit_2, 2, 1, 1, 1)
 
-        self.Dialog.setWindowTitle("Portfolio Holding Calculator")
+        self.checkBox = QtWidgets.QCheckBox(self.Dialog)
+        self.checkBox.setGeometry(QtCore.QRect(220, 10, 121, 16))
+        self.checkBox.setObjectName("checkBox")
+        self.checkBox_2 = QtWidgets.QCheckBox(self.Dialog)
+        self.checkBox_2.setGeometry(QtCore.QRect(220, 30, 121, 16))
+        self.checkBox_2.setObjectName("checkBox_2")
+        self.checkBox_3 = QtWidgets.QCheckBox(self.Dialog)
+        self.checkBox_3.setGeometry(QtCore.QRect(220, 50, 121, 16))
+        self.checkBox_3.setObjectName("checkBox_3")
+        self.checkBox_4 = QtWidgets.QCheckBox(self.Dialog)
+        self.checkBox_4.setGeometry(QtCore.QRect(220, 70, 141, 16))
+        self.checkBox_4.setObjectName("checkBox_4")
+        self.checkBox_5 = QtWidgets.QCheckBox(self.Dialog)
+        self.checkBox_5.setGeometry(QtCore.QRect(220, 90, 141, 16))
+        self.checkBox_5.setObjectName("checkBox_5")
+        self.checkBox_6 = QtWidgets.QCheckBox(self.Dialog)
+        self.checkBox_6.setGeometry(QtCore.QRect(220, 110, 141, 16))
+        self.checkBox_6.setObjectName("checkBox_6")
+
+        self.checkBox.setText("All Process")
+        self.checkBox_2.setText("Positions")
+        self.checkBox_3.setText("NAV")
+        self.checkBox_4.setText("Portfolio Holding")
+        self.checkBox_5.setText("VAR")
+        self.checkBox_6.setText("Drawdown")
+
+        self.Dialog.setWindowTitle("Process Manager")
         self.pushButton.setText("Calculate")
         self.label.setText("Portfolio")
         self.label_2.setText("Start Date")
@@ -97,18 +123,46 @@ class ProcessManager:
                         self.env = "live"
 
                     pos_cmd = """/home/apavlics/Developement/FFM_DEV/bin/python3.6 /home/apavlics/Developement/FFM_DEV/Codes/FFM_SYSTEM/ffm_process.py --db_user_name {user_name} --db_password {password} --env {env} --pos_calc Yes --portfolio {port} --rundate {date}""".format(user_name=self.user_name, password=self.password, port=self.comboBox.currentText(), date=str(self.start_date)[0:10].replace("-", ""), env=self.env)
-                    os.system(pos_cmd)
+
+                    if self.checkBox_2.isChecked():
+
+                        os.system(pos_cmd)
 
                     nav_cmd = """/home/apavlics/Developement/FFM_DEV/bin/python3.6 /home/apavlics/Developement/FFM_DEV/Codes/FFM_SYSTEM/ffm_process.py --db_user_name {user_name} --db_password {password} --env {env} --nav_calc Yes --portfolio {port} --rundate {date}""".format(
-                            user_name=self.user_name, password=self.password, port=self.comboBox.currentText(),
-                            date=str(self.start_date)[0:10].replace("-", ""), env=self.env)
+                                user_name=self.user_name, password=self.password, port=self.comboBox.currentText(),
+                                date=str(self.start_date)[0:10].replace("-", ""), env=self.env)
 
-                    os.system(nav_cmd)
+                    if self.checkBox_3.isChecked():
+
+                        os.system(nav_cmd)
 
                     hold_cmd = """/home/apavlics/Developement/FFM_DEV/bin/python3.6 /home/apavlics/Developement/FFM_DEV/Codes/FFM_SYSTEM/ffm_process.py --db_user_name {user_name} --db_password {password} --env {env} --hold_calc Yes --portfolio {port} --rundate {date}""".format(
-                            user_name=self.user_name, password=self.password, port=self.comboBox.currentText(),
-                            date=str(self.start_date)[0:10].replace("-", ""), env=self.env)
-                    os.system(hold_cmd)
+                                user_name=self.user_name, password=self.password, port=self.comboBox.currentText(),
+                                date=str(self.start_date)[0:10].replace("-", ""), env=self.env)
+
+                    if self.checkBox_4.isChecked():
+
+                        os.system(hold_cmd)
+
+                    var_cmd = """/home/apavlics/Developement/FFM_DEV/bin/python3.6 /home/apavlics/Developement/FFM_DEV/Codes/FFM_SYSTEM/ffm_risk_metrics.py --var Yes --db {db} --user_name {user_name} --password {password}  --port {port} --date {date} --save Yes""".format(db=self.data_base, user_name=self.user_name, password=self.password, port=self.comboBox.currentText(), date=str(self.start_date)[0:10].replace("-", ""))
+
+                    if self.checkBox_5.isChecked():
+
+                        os.system(var_cmd)
+
+                    dd_cmd = """/home/apavlics/Developement/FFM_DEV/bin/python3.6 /home/apavlics/Developement/FFM_DEV/Codes/FFM_SYSTEM/ffm_risk_metrics.py --dd Yes --db {db} --user_name {user_name} --password {password}  --port {port} --date {date} --save Yes""".format(db=self.data_base, user_name=self.user_name, password=self.password, port=self.comboBox.currentText(), date=str(self.start_date)[0:10].replace("-", ""))
+
+                    if self.checkBox_6.isChecked():
+
+                        os.system(dd_cmd)
+
+                    if self.checkBox.isChecked():
+
+                        os.system(pos_cmd)
+                        os.system(nav_cmd)
+                        os.system(hold_cmd)
+                        os.system(var_cmd)
+                        os.system(dd_cmd)
 
                     self.start_date = self.start_date + BDay(1)
 

@@ -11,6 +11,7 @@ parser = argparse.ArgumentParser()
 
 # General data points
 parser.add_argument("--var", help="VAR calculation. Switch: Yes")
+parser.add_argument("--dd", help="Draw down calculation. Switch: Yes")
 parser.add_argument("--port", help="Portfolio. Switch: specific")
 parser.add_argument("--date", help="Date. Switch: specific")
 
@@ -169,14 +170,21 @@ class EqPortVar:
 
 class PortDrawDown:
 
-    def __init__(self, db, user_name, portfolio, password,):
+    def __init__(self, db, user_name, portfolio, password, date):
 
+        print("********************************************")
+        print("      PORTFOLIO DRAW DOWN CALCULATION       ")
+        print("********************************************")
+        print("Date:", date, "Portfolio:", portfolio)
         self.port_nav = SQL(data_base=db,
                             user_name=user_name,
-                            password=password).select_data(select_query="""select pn.total_nav, pn.aum from
+                            password=password).select_data(select_query="""select pn.total_nav, pn.aum, pn.date, 
+                                                                           pn.portfolio_code from
                                                                            portfolio_nav pn, portfolios p
                                                                            where pn.portfolio_code = p.portfolio_id 
-                                                    and p.portfolio_name = '{port_name}'""".format(port_name=portfolio))
+                                                                           and p.portfolio_name = '{port_name}'
+                                                                  and pn.date <= '{date}'""".format(port_name=portfolio,
+                                                                                                    date=date))
 
     def nav_drawdown(self):
 
@@ -192,6 +200,22 @@ class PortDrawDown:
 
         return self.aum_dd
 
+    def save_dd(self, nav_dd, aum_dd):
+
+        print("Saving calculated records to database...")
+
+        SQL(data_base=args.db,
+            user_name=args.user_name,
+            password=args.password).insert_data(insert_query="""update portfolio_nav 
+                                                                set nav_dd = {nav_dd},
+                                                                aum_dd = {aum_dd}
+                                                                where date = '{date}'
+                                                                and portfolio_code = {port_code}""".format(
+                                                                    nav_dd=nav_dd,
+                                                                    aum_dd=aum_dd,
+                                                                    date=args.date,
+                                                                    port_code=list(self.port_nav["portfolio_code"])[0]))
+
 
 if __name__ == "__main__":
 
@@ -206,6 +230,21 @@ if __name__ == "__main__":
         if args.save == "Yes":
 
             var.save_var()
+
+    if args.dd == "Yes":
+
+        dd = PortDrawDown(db=args.db,
+                          user_name=args.user_name,
+                          password=args.password,
+                          portfolio=args.port,
+                          date=args.date)
+
+        if args.save == "Yes":
+
+            nav_dd = dd.nav_drawdown()
+            aum_dd = dd.aum_drawdown()
+
+            dd.save_dd(nav_dd=nav_dd, aum_dd=aum_dd)
 
 
 

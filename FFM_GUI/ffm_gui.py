@@ -276,10 +276,15 @@ class MainWindow(object):
         self.actionCharts.setTitle("Charts")
         self.menuPort_Management.addAction(self.actionCharts.menuAction())
 
-        self.actionHolding_chart = QtWidgets.QAction(self.main_window)
-        self.actionHolding_chart.setObjectName("actionHolding_chart")
-        self.actionHolding_chart.setText("Portfolio Holdings")
-        self.actionCharts.addAction(self.actionHolding_chart)
+        self.actionNAV_chart = QtWidgets.QAction(self.main_window)
+        self.actionNAV_chart.setObjectName("actionNAV_chart")
+        self.actionNAV_chart.setText("Portfolio NAV")
+        self.actionCharts.addAction(self.actionNAV_chart)
+
+        self.actionDD_chart = QtWidgets.QAction(self.main_window)
+        self.actionDD_chart.setObjectName("actionDD_chart")
+        self.actionDD_chart.setText("Portfolio Drawdown")
+        self.actionCharts.addAction(self.actionDD_chart)
 
         self.actionReturn_analysis = QtWidgets.QAction(self.main_window)
         self.actionReturn_analysis.setObjectName("actionReturn_analysis")
@@ -298,7 +303,8 @@ class MainWindow(object):
 
         # Actions
 
-        self.actionHolding_chart.triggered.connect(self.sub_port_holding)
+        self.actionNAV_chart.triggered.connect(self.sub_port_nav)
+        self.actionDD_chart.triggered.connect(self.sub_port_dd)
         self.actionReturn_analysis.triggered.connect(self.sub_port_return)
 
 # ========== Environments
@@ -403,25 +409,10 @@ class MainWindow(object):
         self.menuCalculations.setTitle("Portfolio Calculations")
         self.menuProcess.addAction(self.menuCalculations.menuAction())
 
-        self.actionPortfolio_Positions = QtWidgets.QAction(self.main_window)
-        self.actionPortfolio_Positions.setObjectName("actionPortfolio_Positions")
-        self.actionPortfolio_Positions.setText("Portfolio Positions")
-        self.menuCalculations.addAction(self.actionPortfolio_Positions)
-
-        self.actionPortfolio_NAV = QtWidgets.QAction(self.main_window)
-        self.actionPortfolio_NAV.setObjectName("actionPortfolio_NAV")
-        self.actionPortfolio_NAV.setText("Portfolio NAV")
-        self.menuCalculations.addAction(self.actionPortfolio_NAV)
-
-        self.actionPortfolio_Holding = QtWidgets.QAction(self.main_window)
-        self.actionPortfolio_Holding.setObjectName("actionPortfolio_Holding")
-        self.actionPortfolio_Holding.setText("Portfolio Holdings")
-        self.menuCalculations.addAction(self.actionPortfolio_Holding)
-
-        self.actionPortfolio_Return = QtWidgets.QAction(self.main_window)
-        self.actionPortfolio_Return.setObjectName("actionPortfolio_Return")
-        self.actionPortfolio_Return.setText("Portfolio Returns")
-        self.menuCalculations.addAction(self.actionPortfolio_Return)
+        self.actionProcess_Manager = QtWidgets.QAction(self.main_window)
+        self.actionProcess_Manager.setObjectName("actionProcess_Manager")
+        self.actionProcess_Manager.setText("Process Manager")
+        self.menuCalculations.addAction(self.actionProcess_Manager)
 
         self.menuCalculations2 = QtWidgets.QMenu(self.menuProcess)
         self.menuCalculations2.setObjectName("menuCalculations2")
@@ -429,7 +420,7 @@ class MainWindow(object):
         self.menuProcess.addAction(self.menuCalculations2.menuAction())
 
         # Actions
-        self.actionPortfolio_Holding.triggered.connect(self.port_hold_calc)
+        self.actionProcess_Manager.triggered.connect(self.port_hold_calc)
 
     def port_hold_calc(self):
 
@@ -444,7 +435,7 @@ class MainWindow(object):
         Dialog.show()
         Dialog.exec_()
 
-    def sub_port_holding(self):
+    def sub_port_nav(self):
 
         self.get_port_data = SQL(data_base=self.db,
                                  user_name=self.user_name,
@@ -460,8 +451,8 @@ class MainWindow(object):
         print(self.get_port_data)
 
         self.subwindow = QtWidgets.QWidget()
-        self.subwindow.setObjectName("Portfolio_Holding_Analysis")
-        self.subwindow.setWindowTitle("Portfolio Holding Analysis")
+        self.subwindow.setObjectName("Portfolio_NAV_Analysis")
+        self.subwindow.setWindowTitle("Portfolio NAV History")
         self.subwindow.setMinimumSize(QtCore.QSize(600, 300))
         self.mdiArea_2.addSubWindow(self.subwindow)
 
@@ -473,6 +464,49 @@ class MainWindow(object):
         self.ax = self.fig.add_subplot(111)
         self.ax.plot(self.get_port_data["total_nav"])
         self.ax.plot(self.get_port_data["aum"])
+        self.get_port_data["port_lev_perc"].plot(ax=self.ax, style='--', secondary_y=True)
+        self.ax.legend(['NAV', 'AUM', 'LEV %'])
+
+        # Layout with box sizers
+
+        hbox = QHBoxLayout()
+        vbox = QVBoxLayout()
+        vbox.addWidget(self.canvas)
+        vbox.addLayout(hbox)
+
+        self.subwindow.setLayout(vbox)
+        self.subwindow.show()
+
+    def sub_port_dd(self):
+
+        self.get_port_data = SQL(data_base=self.db,
+                                 user_name=self.user_name,
+                                 password=self.password).select_data("""select*from portfolio_nav pn, portfolios p 
+                                                                                            where pn.portfolio_code = p.portfolio_id 
+                                                                                            and p.portfolio_name = '{port_name}' 
+                                                                                            and pn.date between '{start_date}' 
+                                                                                            and'{end_date}'""".format(
+            port_name=self.port_search_line.text(),
+            start_date=self.port_date_edit_2.text().replace(". ", ""),
+            end_date=self.port_date_edit.text().replace(". ", "")))
+
+        print(self.get_port_data)
+
+        self.subwindow = QtWidgets.QWidget()
+        self.subwindow.setObjectName("Portfolio_DD_Analysis")
+        self.subwindow.setWindowTitle("Portfolio Drawdown History")
+        self.subwindow.setMinimumSize(QtCore.QSize(600, 300))
+        self.mdiArea_2.addSubWindow(self.subwindow)
+
+        self.dpi = 100
+        self.fig = Figure((10.0, 5.0), dpi=self.dpi)
+        self.canvas = FigureCanvas(self.fig)
+        self.canvas.setParent(self.subwindow)
+
+        self.ax = self.fig.add_subplot(111)
+        self.ax.plot(self.get_port_data["nav_dd"])
+        self.ax.plot(self.get_port_data["aum_dd"])
+        self.ax.legend(['NAV', 'AUM'])
 
         # Layout with box sizers
 
@@ -488,7 +522,25 @@ class MainWindow(object):
 
         self.subwindow = QtWidgets.QWidget()
         self.subwindow.setObjectName("Portfolio Return Analysis")
+        self.subwindow.setWindowTitle("Portfolio Return Analysis")
+        self.subwindow.setMinimumSize(QtCore.QSize(600, 300))
         self.mdiArea_2.addSubWindow(self.subwindow)
+
+        self.dpi = 100
+        self.fig = Figure((10.0, 5.0), dpi=self.dpi)
+        self.canvas = FigureCanvas(self.fig)
+        self.canvas.setParent(self.subwindow)
+
+        self.ax = self.fig.add_subplot(111)
+
+        # Layout with box sizers
+
+        hbox = QHBoxLayout()
+        vbox = QVBoxLayout()
+        vbox.addWidget(self.canvas)
+        vbox.addLayout(hbox)
+
+        self.subwindow.setLayout(vbox)
         self.subwindow.show()
 
     def import_portfolio_data(self):
@@ -515,19 +567,14 @@ class MainWindow(object):
                 if (list(self.get_port_data["portfolio_type"])[0] == "TRADE") or \
                         (list(self.get_port_data["portfolio_type"])[0] == "INVESTMENT"):
 
-                    self.dd = PortDrawDown(db=self.db,
-                                           user_name=self.user_name,
-                                           password=self.password,
-                                           portfolio=self.port_search_line.text())
-
-                    self.nav_dd = self.dd.nav_drawdown()
-                    self.aum_dd = self.dd.aum_drawdown()
+                    self.nav_dd = list(self.get_port_data["nav_dd"])[0]
+                    self.aum_dd = list(self.get_port_data["aum_dd"])[0]
 
                     self.port_full_name_label.setText(str(self.get_port_data["full_name"][0]) +
                                                       " - " + str(self.get_port_data["portfolio_type"][0]) +
                                                       "   VAR 95%: "+ str(round(list(self.get_port_data["d_var_95_p"])[0]*100, 2)) + "%" +
-                                                      "   NAV Drawdown: " + str(self.nav_dd) + "   AUM Drawdown: " +
-                                                      str(self.aum_dd))
+                                                      "   NAV Drawdown: " + str(self.nav_dd) + " %   AUM Drawdown: " +
+                                                      str(self.aum_dd) + " %")
 
                     # Widget update
 

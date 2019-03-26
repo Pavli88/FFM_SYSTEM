@@ -34,6 +34,7 @@ parser.add_argument("--pos_calc", help="Calculates positions from trade data wit
 parser.add_argument("--nav_calc", help="Calculates portfolios NAV. Switch: Yes")
 parser.add_argument("--live_nav", help="Calculates portfolios NAV with latest prices. Switch: Yes")
 parser.add_argument("--hold_calc", help="Calculates portfolios holding data. Switch: Yes")
+parser.add_argument("--ncf", help="Portfolio Net Cash Flow calculation. Switch: Yes")
 
 args = parser.parse_args()
 
@@ -140,6 +141,22 @@ class FfmProcess:
         print("SQL query date -1: " + str(self.query_date_1))
         print("Environment: " + str(self.data_base))
         print("")
+
+    def net_cash_flow(self):
+
+        print("********************************************")
+        print("    PORTFOLIO NET CASH FLOW CALCULATOR      ")
+        print("********************************************")
+
+        if self.portdate.weekday() == 6 or self.portdate.weekday() == 5:
+            print("WEEKEND ! POSITIONS CALCULATION IS SHUT DOWN!")
+        else:
+            self.chf = self.sql_connection.select_data(select_query="""select*from cash_flow cf, portfolios p 
+                                                                       where p.portfolio_id = cf.portfolio_code 
+                                                                       and p.portfolio_name = '{port}' 
+                                                                       and cf.date = '{date}'""".format(port=args.portfolio,
+                                                                                                        date=args.rundate))
+            print(self.chf)
 
     def position_calc(self):
 
@@ -764,5 +781,9 @@ if __name__ == "__main__":
     if args.hold_calc == "Yes":
 
         ffm_process.portfolio_holding_calc()
+
+    if args.ncf == "Yes":
+
+        ffm_process.net_cash_flow()
 
 
