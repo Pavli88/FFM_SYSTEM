@@ -1,5 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QMessageBox, QHBoxLayout, QVBoxLayout
+from PyQt5.QtWidgets import QMessageBox, QHBoxLayout, QVBoxLayout, QAction
+from PyQt5.QtGui import QIcon
 import sys
 from FFM_SYSTEM.ffm_data import *
 import datetime
@@ -318,7 +319,7 @@ class EntryWindows:
 
     def strategy_entry(self):
 
-        self.Dialog.resize(427, 168)
+        self.Dialog.resize(428, 192)
         self.Dialog.setWindowTitle("Strategy Entry - " + str(self.db))
         self.Dialog.setFixedSize(self.Dialog.size())
 
@@ -339,7 +340,7 @@ class EntryWindows:
         self.text_input_2.setObjectName("text_input_2")
 
         self.create_button = QtWidgets.QPushButton(self.Dialog)
-        self.create_button.setGeometry(QtCore.QRect(310, 130, 101, 21))
+        self.create_button.setGeometry(QtCore.QRect(310, 160, 101, 21))
         self.create_button.setObjectName("create_button")
 
         self.label_3 = QtWidgets.QLabel(self.Dialog)
@@ -362,12 +363,21 @@ class EntryWindows:
                                                                     where portfolio_group = 'No' 
                                                                   and portfolio_type != 'SAVING'""")["portfolio_name"]))
 
+        self.cbox_3 = QtWidgets.QComboBox(self.Dialog)
+        self.cbox_3.setGeometry(QtCore.QRect(180, 130, 231, 21))
+        self.cbox_3.setObjectName("cbox_3")
+        self.cbox_3.addItems(["MECHANIC", "DISCRETIONARY"])
+
         self.label_5 = QtWidgets.QLabel(self.Dialog)
-        self.label_5.setGeometry(QtCore.QRect(20, 130, 151, 21))
+        self.label_5.setGeometry(QtCore.QRect(20, 160, 151, 21))
         self.label_5.setObjectName("label_5")
 
+        self.label_6 = QtWidgets.QLabel(self.Dialog)
+        self.label_6.setGeometry(QtCore.QRect(20, 130, 151, 21))
+        self.label_6.setObjectName("label_6")
+
         self.dateEdit = QtWidgets.QDateEdit(self.Dialog)
-        self.dateEdit.setGeometry(QtCore.QRect(180, 130, 117, 26))
+        self.dateEdit.setGeometry(QtCore.QRect(180, 160, 117, 26))
         self.dateEdit.setDate(QtCore.QDate(date.today().year, date.today().month, date.today().day))
         self.dateEdit.setObjectName("dateEdit")
 
@@ -377,6 +387,7 @@ class EntryWindows:
         self.label_3.setText("Strategy Model")
         self.label_4.setText("Portfolio Name")
         self.label_5.setText("Start Date")
+        self.label_6.setText("Strategy Type")
 
     def cash_flow(self):
 
@@ -653,7 +664,8 @@ class EntryWindows:
                                                port_code=list(self.entry_connection.select_data("""
                                                select * from portfolios 
                                                where portfolio_name = '{port_name}'""".format(
-                                                   port_name=self.cbox_2.currentText()))["portfolio_id"].values)[0])
+                                                   port_name=self.cbox_2.currentText()))["portfolio_id"].values)[0],
+                                               strat_type=self.cbox_3.currentText())
 
                 self.Dialog.close()
 

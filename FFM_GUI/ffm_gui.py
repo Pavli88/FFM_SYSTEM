@@ -130,10 +130,18 @@ class MainWindow(object):
         elif self.env_box.currentText() == "Live":
             self.main_window.setWindowTitle("Fractal Fund Manager 1.0 - " + "Live Environment")
 
+        # Toolbar
+
         self.toolBar = QtWidgets.QToolBar(self.main_window)
         self.toolBar.setObjectName("toolBar")
         self.main_window.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar)
         self.main_window.insertToolBarBreak(self.toolBar)
+
+        testAction = QAction(QIcon('/home/apavlics/Developement/FFM_DEV/Codes/FFM_SYSTEM/FFM_GUI/Icons/graph.png'), 'Flee the Scene', self.toolBar)
+        #extractAction.triggered.connect(self.close_application)
+
+        #self.toolBar = self.addToolBar("Extraction")
+        self.toolBar.addAction(testAction)
 
         self.centralwidget = QtWidgets.QWidget(self.main_window)
         self.centralwidget.setObjectName("centralwidget")

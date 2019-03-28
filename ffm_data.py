@@ -423,7 +423,7 @@ class Entries(SQL):
 
         print("New security was successfully added to the system !")
 
-    def strategy(self, strat_name, strat_desc, start_date, smcode, port_code):
+    def strategy(self, strat_name, strat_desc, start_date, smcode, port_code, strat_type):
 
         """
         Strategy Entry
@@ -441,17 +441,18 @@ class Entries(SQL):
 
         self.insert_query = """insert into strategy (strategy_code, strategy_name, 
                                                      strategy_desc, start_date, 
-                                                     end_date, strat_modell_code, portfolio_code)
+                                                     end_date, strat_modell_code, portfolio_code, strategy_type)
 
                                values ('{strat_id}',  '{strat_name}', 
                                        '{strat_desc}','{start_date}', 
-                                       '{end_date}',  '{smcode}', '{pc}')""".format(strat_id=int(self.id) + 1,
-                                                                                    strat_name=strat_name,
-                                                                                    strat_desc=strat_desc,
-                                                                                    start_date=start_date,
-                                                                                    end_date="21000101",
-                                                                                    smcode=smcode,
-                                                                                    pc=port_code)
+                                       '{end_date}',  '{smcode}', '{pc}', '{st}')""".format(strat_id=int(self.id) + 1,
+                                                                                            strat_name=strat_name,
+                                                                                            strat_desc=strat_desc,
+                                                                                            start_date=start_date,
+                                                                                            end_date="21000101",
+                                                                                            smcode=smcode,
+                                                                                            pc=port_code,
+                                                                                            st=strat_type)
 
         self.insert_data(self.insert_query)
         self.close_connection()
