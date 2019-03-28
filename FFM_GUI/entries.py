@@ -5,6 +5,9 @@ from FFM_SYSTEM.ffm_data import *
 import datetime
 from datetime import date
 from pandas.tseries.offsets import BDay
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+import os
 
 
 class ProcessManager:
@@ -35,6 +38,7 @@ class ProcessManager:
         self.widget = QtWidgets.QWidget(self.Dialog)
         self.widget.setGeometry(QtCore.QRect(10, 10, 195, 91))
         self.widget.setObjectName("widget")
+
         self.gridLayout = QtWidgets.QGridLayout(self.widget)
         self.gridLayout.setContentsMargins(0, 0, 0, 0)
         self.gridLayout.setObjectName("gridLayout")
@@ -773,6 +777,7 @@ class TradeEntry(object):
         pd.set_option('display.max_columns', 500)
         pd.set_option('display.width', 1000)
 
+        self.dialog = Dialog
         self.data_base = data_base
         self.user_name = user_name
         self.password = password
@@ -796,7 +801,7 @@ class TradeEntry(object):
         self.db_connection.close_connection()
 
         Dialog.setObjectName("Dialog")
-        Dialog.resize(1188, 551)
+        Dialog.resize(1191, 899)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -916,8 +921,8 @@ class TradeEntry(object):
         self.gridLayout_4.addLayout(self.gridLayout_3, 0, 0, 1, 1)
 
         self.groupBox_2 = QtWidgets.QGroupBox(Dialog)
-        self.groupBox_2.setGeometry(QtCore.QRect(9, 286, 1170, 256))
-        self.groupBox_2.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.groupBox_2.setGeometry(QtCore.QRect(9, 286, 1171, 236))
+        self.groupBox_2.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.groupBox_2.setFlat(False)
         self.groupBox_2.setObjectName("groupBox_2")
 
@@ -927,7 +932,9 @@ class TradeEntry(object):
         self.gridLayout_6 = QtWidgets.QGridLayout(self.widget)
         self.gridLayout_6.setContentsMargins(0, 0, 0, 0)
         self.gridLayout_6.setObjectName("gridLayout_6")
+
         self.gridLayout_5 = QtWidgets.QGridLayout()
+        self.gridLayout_5.setContentsMargins(0, 0, 0, 0)
         self.gridLayout_5.setObjectName("gridLayout_5")
 
         self.create_button_4 = QtWidgets.QPushButton(self.widget)
@@ -941,7 +948,7 @@ class TradeEntry(object):
         self.gridLayout_6.addLayout(self.gridLayout_5, 0, 0, 1, 1)
 
         self.tableWidget = QtWidgets.QTableWidget(self.groupBox_2)
-        self.tableWidget.setGeometry(QtCore.QRect(117, 31, 1033, 201))
+        self.tableWidget.setGeometry(QtCore.QRect(119, 32, 1041, 192))
         self.tableWidget.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.tableWidget.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.tableWidget.setObjectName("tableWidget")
@@ -994,6 +1001,31 @@ class TradeEntry(object):
 
         self.gridLayout_6.addWidget(self.tableWidget, 0, 1, 1, 1)
         self.gridLayout_7.addWidget(self.groupBox, 0, 0, 1, 1)
+
+
+        self.label_3 = QtWidgets.QLabel(Dialog)
+        self.label_3.setGeometry(QtCore.QRect(10, 530, 70, 21))
+        font = QtGui.QFont()
+        font.setBold(False)
+        font.setWeight(50)
+        self.label_3.setFont(font)
+        self.label_3.setObjectName("label_3")
+        self.label_3.setText("Start Date")
+
+        self.dateEdit_2 = QtWidgets.QDateEdit(Dialog)
+        self.dateEdit_2.setGeometry(QtCore.QRect(87, 526, 117, 26))
+        font = QtGui.QFont()
+        font.setBold(False)
+        font.setWeight(50)
+        self.dateEdit_2.setFont(font)
+        self.dateEdit_2.setObjectName("dateEdit_2")
+
+        self.pushButton = QtWidgets.QPushButton(Dialog)
+        self.pushButton.setGeometry(QtCore.QRect(210, 526, 80, 25))
+        self.pushButton.setObjectName("pushButton")
+        self.pushButton.setText("Refresh")
+        self.pushButton.clicked.connect(self.get_last_price)
+
         self.groupBox_3 = QtWidgets.QGroupBox(Dialog)
         self.groupBox_3.setGeometry(QtCore.QRect(595, 9, 584, 271))
         font = QtGui.QFont()
@@ -1002,6 +1034,7 @@ class TradeEntry(object):
         self.groupBox_3.setFont(font)
         self.groupBox_3.setFlat(False)
         self.groupBox_3.setObjectName("groupBox_3")
+
         self.label_9 = QtWidgets.QLabel(self.groupBox_3)
         self.label_9.setGeometry(QtCore.QRect(10, 170, 141, 21))
         font = QtGui.QFont()
@@ -1271,6 +1304,48 @@ class TradeEntry(object):
         self.label_9.setText(_translate("Dialog", "Trade Descreption :"))
         self.label_11.setText(_translate("Dialog", "Strategy Description:"))
 
+    def load_chart(self, chart_date, Dialog, ticker):
+
+        # Chart Frame
+        try:
+            self.frame = QtWidgets.QFrame(Dialog)
+            self.frame.setGeometry(QtCore.QRect(10, 560, 1171, 331))
+            self.frame.setFrameShape(QtWidgets.QFrame.StyledPanel)
+            self.frame.setFrameShadow(QtWidgets.QFrame.Raised)
+            self.frame.setObjectName("frame")
+
+            self.start_date = chart_date.replace(". ", "").replace(".", "")
+            print(self.start_date)
+
+            self.dpi = 100
+            self.fig = Figure((10.0, 5.0), dpi=self.dpi)
+            self.canvas = FigureCanvas(self.fig)
+            self.canvas.setParent(self.frame)
+
+            self.ax = self.fig.add_subplot(111)
+
+            x = StockData(stock_list=[ticker], start_date=date(year=int(self.start_date[0:4]),
+                                                               month=int(self.start_date[4:6]),
+                                                               day=int(self.start_date[6:]))).stock_data_frame()
+
+            opens = np.asarray(x['Open'])
+            lows = np.asarray(x['Low'])
+            highs = np.asarray(x['High'])
+            closes = np.asarray(x['Close'])
+            candlestick2_ohlc(self.ax, opens, highs, lows, closes, width=0.6, colorup='green', colordown='r')
+
+            # Layout with box sizers
+
+            hbox = QHBoxLayout()
+            vbox = QVBoxLayout()
+            vbox.addWidget(self.canvas)
+            vbox.addLayout(hbox)
+
+            self.frame.setLayout(vbox)
+            self.frame.show()
+        except:
+            print("Error while downloading data")
+
     def calculate_margin(self):
 
         try:
@@ -1298,7 +1373,12 @@ class TradeEntry(object):
         self.db_connection = SQL(data_base=self.data_base, user_name=self.user_name, password=self.password)
         self.sec_data = self.db_connection.select_data(select_query="""select * from trade 
                                where trade_id = '{trd_id}'""".format(trd_id=self.tableWidget.selectedItems()[0].text()))
+
+        # Updating trade status to closed
+        self.db_connection.insert_data(insert_query="""update trade set status = 'CLOSED' 
+                                     where trade_id = {trade_id}""".format(trade_id=list(self.sec_data["trade_id"])[0]))
         self.db_connection.close_connection()
+
         print(self.sec_data)
 
         self.last_price = OnlineData(ticker=list(self.sec_data["ticker"])[0]).last_eq_price()
@@ -1306,12 +1386,14 @@ class TradeEntry(object):
 
         if list(self.sec_data["side"])[0] == "BUY":
             self.side = "SELL"
+            self.action = "SELL_TO_CLOSE"
         elif list(self.sec_data["side"])[0] == "SELL":
             self.side = "BUY"
+            self.action = "BUY_TO_CLOSE"
 
         self.quantity = list(self.sec_data["quantity"])[0] * -1
         self.margin = list(self.sec_data["margin_bal"])[0] * -1
-        self.coll = self.sec_data["margin_bal"][0] * -1
+        self.coll = self.sec_data["collateral"][0] * -1
 
         Entries(data_base=self.data_base,
                 user_name=self.user_name,
@@ -1328,14 +1410,16 @@ class TradeEntry(object):
                                               leverage_perc=0,
                                               ticker=list(self.sec_data["ticker"])[0],
                                               margin_bal=self.margin,
-                                              collateral=self.coll)
+                                              collateral=self.coll,
+                                              action=self.action,
+                                              status="CLOSED")
 
         # Cashflow
 
         Entries(data_base=self.data_base,
                 user_name=self.user_name,
                 password=self.password).cash_flow(port_code=list(self.sec_data["portfolio_code"])[0],
-                                                  ammount=list(self.sec_data["quantity"])[0] * float(self.last_price),
+                                                  ammount=(list(self.sec_data["quantity"])[0] * float(self.last_price))-self.margin,
                                                   cft="INFLOW",
                                                   date=self.dateEdit.text().replace(". ", "").replace(".", ""),
                                                   currency=list(self.portfolio_data["currency"])[0],
@@ -1374,9 +1458,11 @@ class TradeEntry(object):
             if side == "SELL":
                 self.quantity = int(self.text_input_2.text()) * -1
                 self.collateral_bal = self.quantity * float(self.last_price)*-2
+                self.action = "SELL_TO_OPEN"
             else:
                 self.quantity = int(self.text_input_2.text())
                 self.collateral_bal = 0
+                self.action = "BUY_TO_OPEN"
 
             if self.leverage == "Yes":
 
@@ -1416,7 +1502,9 @@ class TradeEntry(object):
                                                           leverage_perc=self.doubleSpinBox.value(),
                                                           ticker=list(self.sec_data["ticker"])[0],
                                                           margin_bal=self.margin,
-                                                          collateral=self.collateral_bal)
+                                                          collateral=self.collateral_bal,
+                                                          action=self.action,
+                                                          status="OPEN")
 
 
                     Entries(data_base=self.data_base,
@@ -1454,7 +1542,9 @@ class TradeEntry(object):
                                                       leverage_perc=self.doubleSpinBox.value(),
                                                       ticker=list(self.sec_data["ticker"])[0],
                                                       margin_bal=int(self.text_input_2.text())*float(self.last_price)*-1*(float(self.doubleSpinBox.value())/100),
-                                                      collateral=self.collateral_bal)
+                                                      collateral=self.collateral_bal,
+                                                      action=self.action,
+                                                      status="OPEN")
 
                 # Cash flow side of the trade
 
@@ -1486,7 +1576,9 @@ class TradeEntry(object):
 
     def get_last_price(self):
 
-        self.db_connection = SQL(data_base=self.data_base, user_name=self.user_name, password=self.password)
+        self.db_connection = SQL(data_base=self.data_base,
+                                 user_name=self.user_name,
+                                 password=self.password)
         self.sec_data = self.db_connection.select_data(select_query="""select * from sec_info 
                                      where name = '{sec_name}'""".format(sec_name=self.listWidget.currentItem().text()))
         self.db_connection.close_connection()
@@ -1494,6 +1586,10 @@ class TradeEntry(object):
         self.last_price = OnlineData(list(self.sec_data["ticker"])[0]).last_eq_price()
         self.last_price = list(self.last_price["price"])[0]
         self.label_15.setText(str(self.last_price))
+
+        self.load_chart(chart_date=self.dateEdit_2.text(),
+                        Dialog=self.dialog,
+                        ticker=list(self.sec_data["ticker"])[0])
 
     def load_securities(self):
 

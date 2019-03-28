@@ -4,7 +4,10 @@ import requests
 import numpy as np
 import fix_yahoo_finance as fyf
 from pandas.plotting import scatter_matrix
-import os
+from datetime import date
+from matplotlib.finance import candlestick2_ohlc
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 
 
 class SQL:
@@ -477,7 +480,7 @@ class Entries(SQL):
     def trade(self, date, portfolio_code, strategy_code,
               side, quantity, trade_price, leverage,
               sl, sl_level, sec_id,
-              leverage_perc, ticker, margin_bal, collateral):
+              leverage_perc, ticker, margin_bal, collateral, action, status):
 
         """
         Only for trade booking into trade table. Adding to previous open position is treated as a new trade with
@@ -521,12 +524,12 @@ class Entries(SQL):
                                                                                          quantity=quantity,
                                                                                          trade_price=trade_price,
                                                                                          leverage=leverage,
-                                                                                         status="OPEN",
+                                                                                         status=status,
                                                                                          sl=sl,
                                                                                          sl_level=sl_level,
                                                                                          sec_id=sec_id,
                                                                                          leverage_perc=leverage_perc,
-                                                                                         action="LIVE",
+                                                                                         action=action,
                                                                                          ticker=ticker,
                                                                                          mb=margin_bal,
                                                                                          coll=collateral)
@@ -666,5 +669,6 @@ class Entries(SQL):
 
 if __name__ == "__main__":
 
-    pass
+    x = OnlineData(ticker="AAPL").last_eq_price()
+    print(x)
 

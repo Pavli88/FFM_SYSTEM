@@ -276,6 +276,16 @@ class MainWindow(object):
         self.actionCharts.setTitle("Charts")
         self.menuPort_Management.addAction(self.actionCharts.menuAction())
 
+        self.actionChart = QtWidgets.QAction(self.main_window)
+        self.actionChart.setObjectName("actionChart")
+        self.actionChart.setText("Portfolio Chart")
+        self.actionCharts.addAction(self.actionChart)
+
+        self.actionCash_Flow = QtWidgets.QAction(self.main_window)
+        self.actionCash_Flow.setObjectName("actionCash_Flow")
+        self.actionCash_Flow.setText("Portfolio Cash Flow")
+        self.actionCharts.addAction(self.actionCash_Flow)
+
         self.actionNAV_chart = QtWidgets.QAction(self.main_window)
         self.actionNAV_chart.setObjectName("actionNAV_chart")
         self.actionNAV_chart.setText("Portfolio NAV")
@@ -303,6 +313,8 @@ class MainWindow(object):
 
         # Actions
 
+        self.actionChart.triggered.connect(self.sub_port_chart)
+        self.actionCash_Flow.triggered.connect(self.sub_port_chf)
         self.actionNAV_chart.triggered.connect(self.sub_port_nav)
         self.actionDD_chart.triggered.connect(self.sub_port_dd)
         self.actionReturn_analysis.triggered.connect(self.sub_port_return)
@@ -434,6 +446,114 @@ class MainWindow(object):
         proc_man.pushButton.clicked.connect(proc_man.calc_holding)
         Dialog.show()
         Dialog.exec_()
+
+    def sub_port_chart(self):
+
+        self.subwindow = QtWidgets.QWidget()
+        self.subwindow.setObjectName("Portfolio_NAV_Analysis")
+        self.subwindow.setWindowTitle("Portfolio NAV History")
+        self.subwindow.setMinimumSize(QtCore.QSize(600, 300))
+        self.mdiArea_2.addSubWindow(self.subwindow)
+
+        self.dpi = 100
+        self.fig = Figure((10.0, 5.0), dpi=self.dpi)
+        self.canvas = FigureCanvas(self.fig)
+        self.canvas.setParent(self.subwindow)
+
+        self.ax = self.fig.add_subplot(111)
+
+        x = StockData(stock_list=['AAPL'], start_date=date(year=2019, month=3, day=20)).stock_data_frame()
+        print(x)
+
+        opens = np.asarray(x['Open'])  #
+        lows = np.asarray(x['Low'])  #
+        highs = np.asarray(x['High'])  #
+        closes = np.asarray(x['Close'])  #
+        candlestick2_ohlc(self.ax, opens, highs, lows, closes, width=0.6, colorup='green', colordown='r')
+
+        # Layout with box sizers
+
+        hbox = QHBoxLayout()
+        vbox = QVBoxLayout()
+        vbox.addWidget(self.canvas)
+        vbox.addLayout(hbox)
+
+        self.subwindow.setLayout(vbox)
+        self.subwindow.show()
+
+    def sub_port_chf(self):
+
+        self.chf = SQL(data_base=self.db,
+                       user_name=self.user_name,
+                       password=self.password).select_data(select_query="""select*from cash_flow cf, portfolios p 
+                                                                           where p.portfolio_id = cf.portfolio_code 
+                                                                           and p.portfolio_name = '{port}' 
+                                                                           and cf.date between '{start_date}'
+                                                                           and '{end_date}'""".format(
+            port=self.port_search_line.text(),
+            start_date=self.port_date_edit_2.text().replace(". ", ""),
+            end_date=self.port_date_edit.text().replace(". ", "")))
+
+        self.cf_bal = SQL(data_base=self.db,
+                       user_name=self.user_name,
+                       password=self.password).select_data(select_query="""select pn.cash_balance
+                                                                           from portfolio_nav pn, portfolios p
+                                                                           where pn.portfolio_code = p.portfolio_id 
+                                                                           and p.portfolio_name = '{port}' 
+                                                                           and pn.date between '{start_date}' 
+                                                                           and '{end_date}'""".format(
+                                                                                    port=self.port_search_line.text(),
+                                                            start_date=self.port_date_edit_2.text().replace(". ", ""),
+                                                            end_date=self.port_date_edit.text().replace(". ", "")))
+
+        self.start_date = self.port_date_edit_2.text().replace(". ", "").replace(".", "")
+        self.end_date = self.port_date_edit.text().replace(". ", "").replace(".", "")
+
+        self.start_date = date(year=int(self.start_date[0:4]),
+                               month=int(self.start_date[4:6]),
+                               day=int(self.start_date[6:]))
+
+        self.end_date = date(year=int(self.end_date[0:4]),
+                             month=int(self.end_date[4:6]),
+                             day=int(self.end_date[6:]))
+
+        self.cf_list = []
+
+        while self.start_date <= self.end_date:
+            self.chf_frame = self.chf[self.chf["date"] == self.start_date]
+            self.net_chf = sum(list(self.chf_frame["ammount"]))
+            print(self.net_chf, self.start_date)
+            self.cf_list.append(self.net_chf)
+            self.start_date = self.start_date + BDay(1)
+            self.start_date = self.start_date.date()
+
+        self.subwindow = QtWidgets.QWidget()
+        self.subwindow.setObjectName("Portfolio_CF_Analysis")
+        self.subwindow.setWindowTitle("Portfolio Cash Flow History")
+        self.subwindow.setMinimumSize(QtCore.QSize(600, 300))
+        self.mdiArea_2.addSubWindow(self.subwindow)
+
+        self.dpi = 100
+        self.fig = Figure((10.0, 5.0), dpi=self.dpi)
+        self.canvas = FigureCanvas(self.fig)
+        self.canvas.setParent(self.subwindow)
+
+        self.ax = self.fig.add_subplot(111)
+        self.ax.bar(np.arange(len(self.cf_list)), self.cf_list)
+        self.ax.axhline(y=0, color='black')
+        self.ax.plot(list(self.cf_bal["cash_balance"]), color='red')
+
+        self.ax.legend(['Net Cash Flow'])
+
+        # Layout with box sizers
+
+        hbox = QHBoxLayout()
+        vbox = QVBoxLayout()
+        vbox.addWidget(self.canvas)
+        vbox.addLayout(hbox)
+
+        self.subwindow.setLayout(vbox)
+        self.subwindow.show()
 
     def sub_port_nav(self):
 

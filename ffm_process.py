@@ -15,6 +15,7 @@ parser = argparse.ArgumentParser()
 # General data points
 
 parser.add_argument("--rundate", help="Specifies on which date to run production. Switch: specific")
+parser.add_argument("--start_date", help="Start Date. Switch: specific")
 parser.add_argument("--equity_ticker", help="Defining the list of equity tickers or single ticker to "
                                      "produce data. Switches: ALL - All tickers; Specific ticker code",)
 parser.add_argument("--portfolio", help="Specifies on which portfolio to run ffm_processes. "
@@ -154,9 +155,31 @@ class FfmProcess:
             self.chf = self.sql_connection.select_data(select_query="""select*from cash_flow cf, portfolios p 
                                                                        where p.portfolio_id = cf.portfolio_code 
                                                                        and p.portfolio_name = '{port}' 
-                                                                       and cf.date = '{date}'""".format(port=args.portfolio,
-                                                                                                        date=args.rundate))
+                                                                       and cf.date between '{start_date}'
+                                                                       and '{end_date}'""".format(port=args.portfolio,
+                                                                                                  start_date=args.start_date,
+                                                                                                  end_date=args.rundate))
             print(self.chf)
+
+            self.start_date = date(year=int(args.start_date[0:4]),
+                                   month=int(args.start_date[4:6]),
+                                   day=int(args.start_date[6:]))
+
+            self.end_date = date(year=int(args.rundate[0:4]),
+                                   month=int(args.rundate[4:6]),
+                                   day=int(args.rundate[6:]))
+
+            self.cf_list = []
+
+            while self.start_date <= self.end_date:
+
+                self.chf_frame =self.chf[self.chf["date"] == self.start_date]
+                self.net_chf = sum(list(self.chf_frame["ammount"]))
+                self.cf_list.append(self.net_chf)
+                self.start_date = self.start_date + BDay(1)
+                self.start_date = self.start_date.date()
+
+        return self.cf_list
 
     def position_calc(self):
 
