@@ -111,6 +111,7 @@ class MainWindow(object):
 
             self.login_dialog.close()
 
+
         self.load_port_list = SQL(data_base=self.db,
                                   user_name=self.user_name,
                                   password=self.password).select_data("select*from portfolios")

@@ -866,8 +866,8 @@ class TradeEntry(object):
         self.cbox_3 = QtWidgets.QComboBox(self.groupBox)
         self.cbox_3.setObjectName("cbox_3")
         self.cbox_3.addItems(list(self.strategy_query["strategy_name"]))
+        self.gridLayout_2.addWidget(self.cbox_3, 0, 1, 1, 3)
 
-        self.gridLayout_2.addWidget(self.cbox_3, 0, 1, 1, 2)
         self.label_5 = QtWidgets.QLabel(self.groupBox)
         self.label_5.setObjectName("label_5")
         self.gridLayout_2.addWidget(self.label_5, 1, 0, 1, 1)
@@ -875,8 +875,8 @@ class TradeEntry(object):
         self.text_input_2 = QtWidgets.QLineEdit(self.groupBox)
         self.text_input_2.setObjectName("text_input_2")
         self.text_input_2.textChanged.connect(self.calculate_notional)
+        self.gridLayout_2.addWidget(self.text_input_2, 1, 1, 1, 3)
 
-        self.gridLayout_2.addWidget(self.text_input_2, 1, 1, 1, 2)
         self.label_6 = QtWidgets.QLabel(self.groupBox)
         self.label_6.setObjectName("label_6")
 
@@ -888,18 +888,24 @@ class TradeEntry(object):
         self.label_15.setFont(font)
         self.label_15.setAlignment(QtCore.Qt.AlignCenter)
         self.label_15.setObjectName("label_15")
-        self.gridLayout_2.addWidget(self.label_15, 2, 1, 1, 2)
+        self.gridLayout_2.addWidget(self.label_15, 2, 2, 1, 1)
 
         self.gridLayout_2.addWidget(self.label_6, 2, 0, 1, 1)
         self.label_10 = QtWidgets.QLabel(self.groupBox)
         self.label_10.setObjectName("label_10")
-        self.gridLayout_2.addWidget(self.label_10, 3, 0, 1, 1)
+        self.gridLayout_2.addWidget(self.label_10, 4, 0, 1, 1)
+
         self.text_input_3 = QtWidgets.QLineEdit(self.groupBox)
         self.text_input_3.setObjectName("text_input_3")
-        self.gridLayout_2.addWidget(self.text_input_3, 3, 1, 1, 2)
+        self.gridLayout_2.addWidget(self.text_input_3, 4, 1, 1, 3)
+
+        self.text_input_4 = QtWidgets.QLineEdit(self.groupBox)
+        self.text_input_4.setObjectName("text_input_4")
+        self.gridLayout_2.addWidget(self.text_input_4, 3, 2, 1, 2)
+
         self.label_7 = QtWidgets.QLabel(self.groupBox)
         self.label_7.setObjectName("label_7")
-        self.gridLayout_2.addWidget(self.label_7, 4, 0, 1, 1)
+        self.gridLayout_2.addWidget(self.label_7, 5, 0, 1, 1)
 
         self.doubleSpinBox = QtWidgets.QDoubleSpinBox(self.groupBox)
         self.doubleSpinBox.setLayoutDirection(QtCore.Qt.LeftToRight)
@@ -907,28 +913,28 @@ class TradeEntry(object):
         self.doubleSpinBox.setMaximum(100.0)
         self.doubleSpinBox.setSingleStep(5.0)
         self.doubleSpinBox.setObjectName("doubleSpinBox")
-        self.gridLayout_2.addWidget(self.doubleSpinBox, 4, 1, 1, 1)
+        self.gridLayout_2.addWidget(self.doubleSpinBox, 5, 1, 1, 2)
         self.doubleSpinBox.valueChanged.connect(self.calculate_margin)
 
         self.create_button = QtWidgets.QPushButton(self.groupBox)
         self.create_button.setObjectName("create_button")
         self.create_button.clicked.connect(lambda: self.enter_trade(side="BUY"))
+        self.gridLayout_2.addWidget(self.create_button, 5, 3, 1, 1)
 
-        self.gridLayout_2.addWidget(self.create_button, 4, 2, 1, 1)
         self.label_8 = QtWidgets.QLabel(self.groupBox)
         self.label_8.setObjectName("label_8")
-        self.gridLayout_2.addWidget(self.label_8, 5, 0, 1, 1)
+        self.gridLayout_2.addWidget(self.label_8, 6, 0, 1, 1)
 
         self.dateEdit = QtWidgets.QDateEdit(self.groupBox)
         self.dateEdit.setObjectName("dateEdit")
         self.dateEdit.setDate(QtCore.QDate(date.today().year, date.today().month, date.today().day))
-        self.gridLayout_2.addWidget(self.dateEdit, 5, 1, 1, 1)
+        self.gridLayout_2.addWidget(self.dateEdit, 6, 1, 1, 2)
 
         self.create_button_2 = QtWidgets.QPushButton(self.groupBox)
         self.create_button_2.setObjectName("create_button_2")
         self.create_button_2.clicked.connect(lambda: self.enter_trade(side="SELL"))
+        self.gridLayout_2.addWidget(self.create_button_2, 6, 3, 1, 1)
 
-        self.gridLayout_2.addWidget(self.create_button_2, 5, 2, 1, 1)
         self.gridLayout_3.addLayout(self.gridLayout_2, 0, 1, 1, 1)
         self.gridLayout_4.addLayout(self.gridLayout_3, 0, 0, 1, 1)
 
@@ -958,6 +964,11 @@ class TradeEntry(object):
         self.create_button_5.setObjectName("create_button_5")
         self.gridLayout_5.addWidget(self.create_button_5, 2, 0, 1, 1)
         self.gridLayout_6.addLayout(self.gridLayout_5, 0, 0, 1, 1)
+
+        self.checkBox = QtWidgets.QCheckBox(self.groupBox)
+        self.checkBox.setObjectName("checkBox")
+        self.gridLayout_2.addWidget(self.checkBox, 3, 0, 1, 2)
+        self.checkBox.setText("Backdated Price")
 
         self.tableWidget = QtWidgets.QTableWidget(self.groupBox_2)
         self.tableWidget.setGeometry(QtCore.QRect(119, 32, 1041, 192))
@@ -1361,22 +1372,36 @@ class TradeEntry(object):
     def calculate_margin(self):
 
         try:
-            self.label_36.setText(str(float(self.doubleSpinBox.value())/100*round(float(self.text_input_2.text()) * float(self.label_15.text()), 2)))
-            self.trade_cash = round(float(self.text_input_2.text()) * float(self.label_15.text()), 2)-(float(self.doubleSpinBox.value())/100*round(float(self.text_input_2.text()) * float(self.label_15.text()), 2))
+            if self.checkBox.isChecked():
+                self.trd_price = self.text_input_4.text()
+            else:
+                self.trd_price = self.label_15.text()
+
+            print("Trade Price:", self.trd_price)
+
+            self.label_36.setText(str(float(self.doubleSpinBox.value())/100*round(float(self.text_input_2.text()) * float(self.trd_price), 2)))
+            self.trade_cash = round(float(self.text_input_2.text()) * float(self.trd_price), 2)-(float(self.doubleSpinBox.value())/100*round(float(self.text_input_2.text()) * float(self.trd_price), 2))
             self.label_37.setText(str(self.trade_cash))
             self.label_39.setText(str(round((float(self.doubleSpinBox.value()) / 100 * round(
-                float(self.text_input_2.text()) * float(self.label_15.text()), 2) / self.trade_cash), 2) * 100) + " %")
+                float(self.text_input_2.text()) * float(self.trd_price), 2) / self.trade_cash), 2) * 100) + " %")
         except:
             pass
 
     def calculate_notional(self):
 
         try:
-            self.label_34.setText(str(round(float(self.text_input_2.text()) * float(self.label_15.text()), 2)))
-            self.trade_cash = round(float(self.text_input_2.text()) * float(self.label_15.text()), 2)-(float(self.doubleSpinBox.value())/100*round(float(self.text_input_2.text()) * float(self.label_15.text()), 2))
+            if self.checkBox.isChecked():
+                self.trd_price = self.text_input_4.text()
+            else:
+                self.trd_price = self.label_15.text()
+
+            print("Trade Price:", self.trd_price)
+
+            self.label_34.setText(str(round(float(self.text_input_2.text()) * float(self.trd_price), 2)))
+            self.trade_cash = round(float(self.text_input_2.text()) * float(self.trd_price), 2)-(float(self.doubleSpinBox.value())/100*round(float(self.text_input_2.text()) * float(self.trd_price), 2))
             self.label_37.setText(str(self.trade_cash))
             self.label_39.setText(str(round((float(self.doubleSpinBox.value()) / 100 * round(
-                float(self.text_input_2.text()) * float(self.label_15.text()), 2) / self.trade_cash), 2) * 100) + " %")
+                float(self.text_input_2.text()) * float(self.trd_price), 2) / self.trade_cash), 2) * 100) + " %")
         except:
             pass
 
@@ -1397,11 +1422,21 @@ class TradeEntry(object):
         self.last_price = list(self.last_price["price"])[0]
 
         if list(self.sec_data["side"])[0] == "BUY":
+
             self.side = "SELL"
             self.action = "SELL_TO_CLOSE"
+
         elif list(self.sec_data["side"])[0] == "SELL":
+
             self.side = "BUY"
             self.action = "BUY_TO_CLOSE"
+
+        if self.checkBox.isChecked():
+            self.trd_price = self.text_input_4.text()
+        else:
+            self.trd_price = self.last_price
+
+        print("Close Price:", self.trd_price)
 
         self.quantity = list(self.sec_data["quantity"])[0] * -1
         self.margin = list(self.sec_data["margin_bal"])[0] * -1
@@ -1414,7 +1449,7 @@ class TradeEntry(object):
                                               strategy_code=list(self.sec_data["strategy_code"])[0],
                                               side=self.side,
                                               quantity=self.quantity,
-                                              trade_price=float(self.last_price),
+                                              trade_price=float(self.trd_price),
                                               leverage="No",
                                               sl="No",
                                               sl_level=0,
@@ -1431,7 +1466,7 @@ class TradeEntry(object):
         Entries(data_base=self.data_base,
                 user_name=self.user_name,
                 password=self.password).cash_flow(port_code=list(self.sec_data["portfolio_code"])[0],
-                                                  ammount=(list(self.sec_data["quantity"])[0] * float(self.last_price))-self.margin,
+                                                  ammount=(list(self.sec_data["quantity"])[0] * float(self.trd_price))-self.margin,
                                                   cft="INFLOW",
                                                   date=self.dateEdit.text().replace(". ", "").replace(".", ""),
                                                   currency=list(self.portfolio_data["currency"])[0],
@@ -1467,33 +1502,48 @@ class TradeEntry(object):
             else:
                 self.leverage = "No"
 
+            print("Leverage", self.leverage)
+
+            if self.checkBox.isChecked():
+                self.trd_price = self.text_input_4.text()
+            else:
+                self.trd_price = self.label_15.text()
+
+            print("Trade Price:", self.trd_price)
+
             if side == "SELL":
                 self.quantity = int(self.text_input_2.text()) * -1
-                self.collateral_bal = self.quantity * float(self.last_price)*-2
+                self.collateral_bal = self.quantity * float(self.trd_price)*-2
                 self.action = "SELL_TO_OPEN"
+
             else:
                 self.quantity = int(self.text_input_2.text())
                 self.collateral_bal = 0
                 self.action = "BUY_TO_OPEN"
 
+            print("Trade Action:", self.action)
+
             if self.leverage == "Yes":
 
-                self.margin = int(self.text_input_2.text())*float(self.last_price)*-1*(float(self.doubleSpinBox.value())/100)
+                self.margin = int(self.text_input_2.text())*float(self.trd_price)*-1*(float(self.doubleSpinBox.value())/100)
 
-                self.cash_flow_ammount = int(self.text_input_2.text()) * float(self.last_price) * -1 * \
+                self.cash_flow_ammount = int(self.text_input_2.text()) * float(self.trd_price) * -1 * \
                                          ((100 - float(self.doubleSpinBox.value())) / 100)
             else:
                 self.margin = 0
 
-                self.cash_flow_ammount = int(self.text_input_2.text()) * float(self.last_price) * -1
+                self.cash_flow_ammount = int(self.text_input_2.text()) * float(self.trd_price) * -1
+
+            print("Margin:", self.margin)
+            print("Cash Flow Ammount:", self.cash_flow_ammount)
 
             if len(self.text_input_3.text()) > 0:
                 self.sl = "Yes"
                 self.sl_level = self.text_input_3.text()
 
-                if (side == "BUY") and (float(self.last_price) < float(self.sl_level)):
+                if (side == "BUY") and (float(self.trd_price) < float(self.sl_level)):
                     MsgBoxes().info_box(message="BUY Trade. SL Price is larger than trade price !", title="Notification")
-                elif (side == "SELL") and (float(self.last_price) > float(self.sl_level)):
+                elif (side == "SELL") and (float(self.trd_price) > float(self.sl_level)):
                     MsgBoxes().info_box(message="SELL Trade. SL Price is smaller than trade price !", title="Notification")
                 else:
 
@@ -1506,7 +1556,7 @@ class TradeEntry(object):
                                                           strategy_code=list(self.strat_code_query["strategy_code"])[0],
                                                           side=side,
                                                           quantity=self.quantity,
-                                                          trade_price=float(self.last_price),
+                                                          trade_price=float(self.trd_price),
                                                           leverage=self.leverage,
                                                           sl=self.sl,
                                                           sl_level=float(self.sl_level),
@@ -1546,14 +1596,14 @@ class TradeEntry(object):
                                                       strategy_code=list(self.strat_code_query["strategy_code"])[0],
                                                       side=side,
                                                       quantity=self.quantity,
-                                                      trade_price=float(self.last_price),
+                                                      trade_price=float(self.trd_price),
                                                       leverage=self.leverage,
                                                       sl=self.sl,
                                                       sl_level=float(self.sl_level),
                                                       sec_id=list(self.sec_data["sec_id"])[0],
                                                       leverage_perc=self.doubleSpinBox.value(),
                                                       ticker=list(self.sec_data["ticker"])[0],
-                                                      margin_bal=int(self.text_input_2.text())*float(self.last_price)*-1*(float(self.doubleSpinBox.value())/100),
+                                                      margin_bal=int(self.text_input_2.text())*float(self.trd_price)*-1*(float(self.doubleSpinBox.value())/100),
                                                       collateral=self.collateral_bal,
                                                       action=self.action,
                                                       status="OPEN")
@@ -1584,6 +1634,8 @@ class TradeEntry(object):
 
             self.label_32.setText(str(sum(list(self.cash_flow_data["ammount"]))))
 
+            # Updating trade_analysis table
+
 
 
     def get_last_price(self):
@@ -1594,6 +1646,8 @@ class TradeEntry(object):
         self.sec_data = self.db_connection.select_data(select_query="""select * from sec_info 
                                      where name = '{sec_name}'""".format(sec_name=self.listWidget.currentItem().text()))
         self.db_connection.close_connection()
+
+        # Here comes later the price load of the particular security type like loading price for bond fx etc...
 
         self.last_price = OnlineData(list(self.sec_data["ticker"])[0]).last_eq_price()
         self.last_price = list(self.last_price["price"])[0]
