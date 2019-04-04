@@ -300,9 +300,14 @@ class MainWindow(object):
         self.actionNAV_chart.setText("Portfolio NAV")
         self.actionCharts.addAction(self.actionNAV_chart)
 
+        self.actionAUMDD_chart = QtWidgets.QAction(self.main_window)
+        self.actionAUMDD_chart.setObjectName("actionAUMDD_chart")
+        self.actionAUMDD_chart.setText("Portfolio AUM Drawdown")
+        self.actionCharts.addAction(self.actionAUMDD_chart)
+
         self.actionDD_chart = QtWidgets.QAction(self.main_window)
         self.actionDD_chart.setObjectName("actionDD_chart")
-        self.actionDD_chart.setText("Portfolio Drawdown")
+        self.actionDD_chart.setText("Portfolio NAV Drawdown")
         self.actionCharts.addAction(self.actionDD_chart)
 
         self.actionReturn_analysis = QtWidgets.QAction(self.main_window)
@@ -326,6 +331,7 @@ class MainWindow(object):
         self.actionCash_Flow.triggered.connect(self.sub_port_chf)
         self.actionNAV_chart.triggered.connect(self.sub_port_nav)
         self.actionDD_chart.triggered.connect(self.sub_port_dd)
+        self.actionAUMDD_chart.triggered.connect(self.sub_port_aum_dd)
         self.actionReturn_analysis.triggered.connect(self.sub_port_return)
 
 # ========== Environments
@@ -622,8 +628,8 @@ class MainWindow(object):
         print(self.get_port_data)
 
         self.subwindow = QtWidgets.QWidget()
-        self.subwindow.setObjectName("Portfolio_DD_Analysis")
-        self.subwindow.setWindowTitle("Portfolio Drawdown History")
+        self.subwindow.setObjectName("Portfolio_NAVDD_Analysis")
+        self.subwindow.setWindowTitle("Portfolio NAV Drawdown History")
         self.subwindow.setMinimumSize(QtCore.QSize(600, 300))
         self.mdiArea_2.addSubWindow(self.subwindow)
 
@@ -634,8 +640,47 @@ class MainWindow(object):
 
         self.ax = self.fig.add_subplot(111)
         self.ax.plot(self.get_port_data["nav_dd"])
+        self.ax.legend(['NAV Drawdown'])
+
+        # Layout with box sizers
+
+        hbox = QHBoxLayout()
+        vbox = QVBoxLayout()
+        vbox.addWidget(self.canvas)
+        vbox.addLayout(hbox)
+
+        self.subwindow.setLayout(vbox)
+        self.subwindow.show()
+
+    def sub_port_aum_dd(self):
+
+        self.get_port_data = SQL(data_base=self.db,
+                                 user_name=self.user_name,
+                                 password=self.password).select_data("""select*from portfolio_nav pn, portfolios p 
+                                                                                            where pn.portfolio_code = p.portfolio_id 
+                                                                                            and p.portfolio_name = '{port_name}' 
+                                                                                            and pn.date between '{start_date}' 
+                                                                                            and'{end_date}'""".format(
+            port_name=self.port_search_line.text(),
+            start_date=self.port_date_edit_2.text().replace(". ", ""),
+            end_date=self.port_date_edit.text().replace(". ", "")))
+
+        print(self.get_port_data)
+
+        self.subwindow = QtWidgets.QWidget()
+        self.subwindow.setObjectName("Portfolio_AUMDD_Analysis")
+        self.subwindow.setWindowTitle("Portfolio AUM Drawdown History")
+        self.subwindow.setMinimumSize(QtCore.QSize(600, 300))
+        self.mdiArea_2.addSubWindow(self.subwindow)
+
+        self.dpi = 100
+        self.fig = Figure((10.0, 5.0), dpi=self.dpi)
+        self.canvas = FigureCanvas(self.fig)
+        self.canvas.setParent(self.subwindow)
+
+        self.ax = self.fig.add_subplot(111)
         self.ax.plot(self.get_port_data["aum_dd"])
-        self.ax.legend(['NAV', 'AUM'])
+        self.ax.legend(['AUM Drawdown'])
 
         # Layout with box sizers
 

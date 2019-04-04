@@ -540,6 +540,8 @@ class Entries(SQL):
 
         print("New trade was successfully entered into the system !")
 
+        return self.trd_id
+
     def trade_modify(self, trade_id, last_price, date="0", action="0", quantity="0", trade_price="0"):
 
         """

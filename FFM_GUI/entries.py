@@ -793,6 +793,7 @@ class TradeEntry(object):
         self.data_base = data_base
         self.user_name = user_name
         self.password = password
+        self.portfolio_name = portfolio_name
 
         self.db_connection = SQL(data_base=self.data_base, user_name=self.user_name, password=self.password)
         self.strategy_query = self.db_connection.select_data(select_query="""select*from strategy 
@@ -947,23 +948,6 @@ class TradeEntry(object):
         self.widget = QtWidgets.QWidget(self.groupBox_2)
         self.widget.setGeometry(QtCore.QRect(10, 32, 1001, 221))
         self.widget.setObjectName("widget")
-        self.gridLayout_6 = QtWidgets.QGridLayout(self.widget)
-        self.gridLayout_6.setContentsMargins(0, 0, 0, 0)
-        self.gridLayout_6.setObjectName("gridLayout_6")
-
-        self.gridLayout_5 = QtWidgets.QGridLayout()
-        self.gridLayout_5.setContentsMargins(0, 0, 0, 0)
-        self.gridLayout_5.setObjectName("gridLayout_5")
-
-        self.create_button_4 = QtWidgets.QPushButton(self.widget)
-        self.create_button_4.setObjectName("create_button_4")
-        self.create_button_4.clicked.connect(self.close_trade)
-
-        self.gridLayout_5.addWidget(self.create_button_4, 1, 0, 1, 1)
-        self.create_button_5 = QtWidgets.QPushButton(self.widget)
-        self.create_button_5.setObjectName("create_button_5")
-        self.gridLayout_5.addWidget(self.create_button_5, 2, 0, 1, 1)
-        self.gridLayout_6.addLayout(self.gridLayout_5, 0, 0, 1, 1)
 
         self.checkBox = QtWidgets.QCheckBox(self.groupBox)
         self.checkBox.setObjectName("checkBox")
@@ -1022,8 +1006,64 @@ class TradeEntry(object):
         self.tableWidget.setSortingEnabled(False)
         self.tableWidget.setSortingEnabled(__sortingEnabled)
 
-        self.gridLayout_6.addWidget(self.tableWidget, 0, 1, 1, 1)
         self.gridLayout_7.addWidget(self.groupBox, 0, 0, 1, 1)
+
+        # Modify buttons
+
+        self.widget2 = QtWidgets.QWidget(self.groupBox_2)
+        self.widget2.setGeometry(QtCore.QRect(10, 30, 101, 197))
+        self.widget2.setObjectName("widget2")
+
+        self.verticalLayout = QtWidgets.QVBoxLayout(self.widget2)
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout.setObjectName("verticalLayout")
+
+        self.create_button_4 = QtWidgets.QPushButton(self.widget2)
+        self.create_button_4.setObjectName("create_button_4")
+        self.verticalLayout.addWidget(self.create_button_4)
+        self.create_button_4.setText("Close Trade")
+        self.create_button_4.clicked.connect(self.close_trade)
+
+        self.label = QtWidgets.QLabel(self.widget2)
+        self.label.setAlignment(QtCore.Qt.AlignCenter)
+        self.label.setObjectName("label")
+        self.verticalLayout.addWidget(self.label)
+        self.label.setText("Stop Level")
+
+        self.text_input_5 = QtWidgets.QLineEdit(self.widget2)
+        font = QtGui.QFont()
+        font.setBold(False)
+        font.setWeight(50)
+        self.text_input_5.setFont(font)
+        self.text_input_5.setObjectName("text_input_5")
+        self.verticalLayout.addWidget(self.text_input_5)
+
+        self.create_button_5 = QtWidgets.QPushButton(self.widget2)
+        self.create_button_5.setObjectName("create_button_5")
+        self.verticalLayout.addWidget(self.create_button_5)
+        self.create_button_5.setText("->")
+        self.create_button_5.clicked.connect(self.stop_button)
+
+        self.label_4 = QtWidgets.QLabel(self.widget2)
+        self.label_4.setAlignment(QtCore.Qt.AlignCenter)
+        self.label_4.setObjectName("label_4")
+        self.verticalLayout.addWidget(self.label_4)
+        self.label_4.setText("Quantity")
+
+        self.text_input_6 = QtWidgets.QLineEdit(self.widget2)
+        font = QtGui.QFont()
+        font.setBold(False)
+        font.setWeight(50)
+        self.text_input_6.setFont(font)
+        self.text_input_6.setObjectName("text_input_6")
+        self.verticalLayout.addWidget(self.text_input_6)
+
+        self.create_button_6 = QtWidgets.QPushButton(self.widget2)
+        self.create_button_6.setObjectName("create_button_6")
+        self.verticalLayout.addWidget(self.create_button_6)
+        self.create_button_6.setText("->")
+
+        # =====================================================
 
 
         self.label_3 = QtWidgets.QLabel(Dialog)
@@ -1319,17 +1359,20 @@ class TradeEntry(object):
         self.label_8.setText(_translate("Dialog", "Date"))
         self.create_button_2.setText(_translate("Dialog", "SELL"))
         self.groupBox_2.setTitle(_translate("Dialog", "Open Positions"))
-        self.create_button_4.setText(_translate("Dialog", "Close Trade"))
-        self.create_button_5.setText(_translate("Dialog", "Amend Trade"))
-
-
         self.groupBox_3.setTitle(_translate("Dialog", "Info"))
         self.label_9.setText(_translate("Dialog", "Trade Descreption :"))
         self.label_11.setText(_translate("Dialog", "Strategy Description:"))
 
+    def stop_button(self):
+
+        print(self.tableWidget.selectedItems()[0].text())
+
+        print(self.tableWidget.selectedItems()[1].text())
+
     def load_chart(self, chart_date, Dialog, ticker):
 
         # Chart Frame
+
         try:
             self.frame = QtWidgets.QFrame(Dialog)
             self.frame.setGeometry(QtCore.QRect(10, 560, 1171, 331))
@@ -1486,70 +1529,131 @@ class TradeEntry(object):
 
         self.label_32.setText(str(sum(list(self.cash_flow_data["ammount"]))))
 
+        # Updating trade_analysis table
+
     def enter_trade(self, side):
 
         if self.trade_cash > float(self.label_32.text()):
             MsgBoxes().info_box(message="Position is too large. There is not enough cash in the portfolio !", title="Notification")
         else:
 
+            self.trd_date = self.dateEdit.text().replace(". ", "-").replace(".", "")
+            self.trd_date = datetime.datetime.strptime(self.trd_date, '%Y-%m-%d')
+
+            self.nav_date = str(self.trd_date + BDay(-1)).replace("-", "")[0:8]
+
             self.db_connection = SQL(data_base=self.data_base, user_name=self.user_name, password=self.password)
-            self.strat_code_query = self.db_connection.select_data(select_query="""select*from strategy 
-                                       where strategy_name = '{strat_name}'""".format(strat_name=self.cbox_3.currentText()))
-            self.db_connection.close_connection()
 
-            if self.doubleSpinBox.value() > 0.00:
-                self.leverage = "Yes"
+            self.port_nav = self.db_connection.select_data(select_query="""select pn.total_nav 
+                                                                           from portfolio_nav pn, portfolios p
+                                                                           where pn.portfolio_code = p.portfolio_id
+                                                                           and p.portfolio_name = '{port_name}'
+                                                                           and pn.date = '{nav_date}'""".format(
+                port_name=self.portfolio_name,
+                nav_date=self.nav_date))
+
+            if len(self.port_nav["total_nav"]) == 0:
+                MsgBoxes().info_box(message="NAV data is missing as of " + str(self.nav_date) + " !",
+                                    title="Notification")
             else:
-                self.leverage = "No"
 
-            print("Leverage", self.leverage)
+                self.strat_code_query = self.db_connection.select_data(select_query="""select*from strategy 
+                                           where strategy_name = '{strat_name}'""".format(strat_name=self.cbox_3.currentText()))
+                self.db_connection.close_connection()
 
-            if self.checkBox.isChecked():
-                self.trd_price = self.text_input_4.text()
-            else:
-                self.trd_price = self.label_15.text()
-
-            print("Trade Price:", self.trd_price)
-
-            if side == "SELL":
-                self.quantity = int(self.text_input_2.text()) * -1
-                self.collateral_bal = self.quantity * float(self.trd_price)*-2
-                self.action = "SELL_TO_OPEN"
-
-            else:
-                self.quantity = int(self.text_input_2.text())
-                self.collateral_bal = 0
-                self.action = "BUY_TO_OPEN"
-
-            print("Trade Action:", self.action)
-
-            if self.leverage == "Yes":
-
-                self.margin = int(self.text_input_2.text())*float(self.trd_price)*-1*(float(self.doubleSpinBox.value())/100)
-
-                self.cash_flow_ammount = int(self.text_input_2.text()) * float(self.trd_price) * -1 * \
-                                         ((100 - float(self.doubleSpinBox.value())) / 100)
-            else:
-                self.margin = 0
-
-                self.cash_flow_ammount = int(self.text_input_2.text()) * float(self.trd_price) * -1
-
-            print("Margin:", self.margin)
-            print("Cash Flow Ammount:", self.cash_flow_ammount)
-
-            if len(self.text_input_3.text()) > 0:
-                self.sl = "Yes"
-                self.sl_level = self.text_input_3.text()
-
-                if (side == "BUY") and (float(self.trd_price) < float(self.sl_level)):
-                    MsgBoxes().info_box(message="BUY Trade. SL Price is larger than trade price !", title="Notification")
-                elif (side == "SELL") and (float(self.trd_price) > float(self.sl_level)):
-                    MsgBoxes().info_box(message="SELL Trade. SL Price is smaller than trade price !", title="Notification")
+                if self.doubleSpinBox.value() > 0.00:
+                    self.leverage = "Yes"
                 else:
+                    self.leverage = "No"
+
+                print("Leverage", self.leverage)
+
+                if self.checkBox.isChecked():
+                    self.trd_price = self.text_input_4.text()
+                else:
+                    self.trd_price = self.label_15.text()
+
+                print("Trade Price:", self.trd_price)
+
+                if side == "SELL":
+                    self.quantity = int(self.text_input_2.text()) * -1
+                    self.collateral_bal = self.quantity * float(self.trd_price)*-2
+                    self.action = "SELL_TO_OPEN"
+
+                else:
+                    self.quantity = int(self.text_input_2.text())
+                    self.collateral_bal = 0
+                    self.action = "BUY_TO_OPEN"
+
+                print("Trade Action:", self.action)
+
+                if self.leverage == "Yes":
+
+                    self.margin = int(self.text_input_2.text())*float(self.trd_price)*-1*(float(self.doubleSpinBox.value())/100)
+
+                    self.cash_flow_ammount = int(self.text_input_2.text()) * float(self.trd_price) * -1 * \
+                                             ((100 - float(self.doubleSpinBox.value())) / 100)
+                else:
+                    self.margin = 0
+
+                    self.cash_flow_ammount = int(self.text_input_2.text()) * float(self.trd_price) * -1
+
+                print("Margin:", self.margin)
+                print("Cash Flow Ammount:", self.cash_flow_ammount)
+
+                if len(self.text_input_3.text()) > 0:
+                    self.sl = "Yes"
+                    self.sl_level = self.text_input_3.text()
+
+                    if (side == "BUY") and (float(self.trd_price) < float(self.sl_level)):
+                        MsgBoxes().info_box(message="BUY Trade. SL Price is larger than trade price !", title="Notification")
+                    elif (side == "SELL") and (float(self.trd_price) > float(self.sl_level)):
+                        MsgBoxes().info_box(message="SELL Trade. SL Price is smaller than trade price !", title="Notification")
+                    else:
+
+                        # Trade Entry
+
+                        self.trd_id = Entries(data_base=self.data_base,
+                                user_name=self.user_name,
+                                password=self.password).trade(date=self.dateEdit.text().replace(". ", "").replace(".", ""),
+                                                              portfolio_code=list(self.strat_code_query["portfolio_code"])[0],
+                                                              strategy_code=list(self.strat_code_query["strategy_code"])[0],
+                                                              side=side,
+                                                              quantity=self.quantity,
+                                                              trade_price=float(self.trd_price),
+                                                              leverage=self.leverage,
+                                                              sl=self.sl,
+                                                              sl_level=float(self.sl_level),
+                                                              sec_id=list(self.sec_data["sec_id"])[0],
+                                                              leverage_perc=self.doubleSpinBox.value(),
+                                                              ticker=list(self.sec_data["ticker"])[0],
+                                                              margin_bal=self.margin,
+                                                              collateral=self.collateral_bal,
+                                                              action=self.action,
+                                                              status="OPEN")
+
+
+                        Entries(data_base=self.data_base,
+                                user_name=self.user_name,
+                                password=self.password).cash_flow(port_code=list(self.strat_code_query["portfolio_code"])[0],
+                                                                  ammount=self.cash_flow_ammount,
+                                                                  cft="OUTFLOW",
+                                                                  date=self.dateEdit.text().replace(". ", "").replace(".", ""),
+                                                                  currency=list(self.portfolio_data["currency"])[0],
+                                                                  comment="Trade",
+                                                                  client=self.user_name)
+
+                        MsgBoxes().info_box(message="Trade was booked successfully !", title="Notification")
+
+                        self.load_strat_desc()
+
+                else:
+                    self.sl = "No"
+                    self.sl_level = 0
 
                     # Trade Entry
 
-                    Entries(data_base=self.data_base,
+                    self.trd_id =Entries(data_base=self.data_base,
                             user_name=self.user_name,
                             password=self.password).trade(date=self.dateEdit.text().replace(". ", "").replace(".", ""),
                                                           portfolio_code=list(self.strat_code_query["portfolio_code"])[0],
@@ -1563,11 +1667,12 @@ class TradeEntry(object):
                                                           sec_id=list(self.sec_data["sec_id"])[0],
                                                           leverage_perc=self.doubleSpinBox.value(),
                                                           ticker=list(self.sec_data["ticker"])[0],
-                                                          margin_bal=self.margin,
+                                                          margin_bal=int(self.text_input_2.text())*float(self.trd_price)*-1*(float(self.doubleSpinBox.value())/100),
                                                           collateral=self.collateral_bal,
                                                           action=self.action,
                                                           status="OPEN")
 
+                    # Cash flow side of the trade
 
                     Entries(data_base=self.data_base,
                             user_name=self.user_name,
@@ -1581,62 +1686,53 @@ class TradeEntry(object):
 
                     MsgBoxes().info_box(message="Trade was booked successfully !", title="Notification")
 
+
                     self.load_strat_desc()
 
-            else:
-                self.sl = "No"
-                self.sl_level = 0
+                self.cash_flow_data = SQL(data_base=self.data_base,
+                                          user_name=self.user_name,
+                                          password=self.password).select_data(select_query="""select*from cash_flow 
+                                                                                        where portfolio_code = {port_code}
+                                                                                                         """.format(
+                                                                    port_code=list(self.portfolio_data["portfolio_id"])[0]))
 
-                # Trade Entry
+                self.label_32.setText(str(sum(list(self.cash_flow_data["ammount"]))))
 
-                Entries(data_base=self.data_base,
-                        user_name=self.user_name,
-                        password=self.password).trade(date=self.dateEdit.text().replace(". ", "").replace(".", ""),
-                                                      portfolio_code=list(self.strat_code_query["portfolio_code"])[0],
-                                                      strategy_code=list(self.strat_code_query["strategy_code"])[0],
-                                                      side=side,
-                                                      quantity=self.quantity,
-                                                      trade_price=float(self.trd_price),
-                                                      leverage=self.leverage,
-                                                      sl=self.sl,
-                                                      sl_level=float(self.sl_level),
-                                                      sec_id=list(self.sec_data["sec_id"])[0],
-                                                      leverage_perc=self.doubleSpinBox.value(),
-                                                      ticker=list(self.sec_data["ticker"])[0],
-                                                      margin_bal=int(self.text_input_2.text())*float(self.trd_price)*-1*(float(self.doubleSpinBox.value())/100),
-                                                      collateral=self.collateral_bal,
-                                                      action=self.action,
-                                                      status="OPEN")
+                # Updating trade_analysis table
 
-                # Cash flow side of the trade
+                self.trd_id_an = SQL(data_base=self.data_base,
+                                     user_name=self.user_name,
+                                     password=self.password).select_data(select_query="""SELECT MAX(id) AS 'max_id' FROM trade_analysis""")
 
-                Entries(data_base=self.data_base,
-                        user_name=self.user_name,
-                        password=self.password).cash_flow(port_code=list(self.strat_code_query["portfolio_code"])[0],
-                                                          ammount=self.cash_flow_ammount,
-                                                          cft="OUTFLOW",
-                                                          date=self.dateEdit.text().replace(". ", "").replace(".", ""),
-                                                          currency=list(self.portfolio_data["currency"])[0],
-                                                          comment="Trade",
-                                                          client=self.user_name)
+                self.sl_cost = abs((self.quantity * float(self.sl_level)) - (self.quantity * float(self.trd_price))) * -1
 
-                MsgBoxes().info_box(message="Trade was booked successfully !", title="Notification")
+                if list(self.trd_id_an["max_id"])[0] is None:
+                    self.trd_id_an = 1
+                else:
+                    self.trd_id_an = list(self.trd_id_an["max_id"])[0]+1
 
+                self.sl_cost_nav = abs(self.sl_cost)/list(self.port_nav["total_nav"])[0]
 
-                self.load_strat_desc()
-
-            self.cash_flow_data = SQL(data_base=self.data_base,
-                                      user_name=self.user_name,
-                                      password=self.password).select_data(select_query="""select*from cash_flow 
-                                                                                    where portfolio_code = {port_code}
-                                                                                                     """.format(
-                                                                port_code=list(self.portfolio_data["portfolio_id"])[0]))
-
-            self.label_32.setText(str(sum(list(self.cash_flow_data["ammount"]))))
-
-            # Updating trade_analysis table
-
-
+                SQL(data_base=self.data_base,
+                    user_name=self.user_name,
+                    password=self.password).insert_data(insert_query="""insert into trade_analysis 
+                                                                                        (trade_id, open_date, portfolio_id, strategy_id,
+                                                                                         trd_price, quantity, sl, cost, sl_cost, status, sl_cost_to_nav, id) 
+    
+                                                                                        values ('{trd_id}', '{open_date}', 
+                                                                                        '{portfolio_id}', '{strat_id}', '{trd_price}', 
+                                                                                        '{quantity}', '{sl}', '{cost}', '{sl_cost}', 'OPEN', '{slcn}','{id}')""".format(
+                    trd_id=self.trd_id,
+                    open_date=self.dateEdit.text().replace(". ", "").replace(".", ""),
+                    portfolio_id=list(self.strat_code_query["portfolio_code"])[0],
+                    strat_id=list(self.strat_code_query["strategy_code"])[0],
+                    trd_price=float(self.trd_price),
+                    quantity=self.quantity,
+                    sl=float(self.sl_level),
+                    cost=self.cash_flow_ammount,
+                    sl_cost=self.sl_cost,
+                    slcn=self.sl_cost_nav,
+                    id=self.trd_id_an))
 
     def get_last_price(self):
 
