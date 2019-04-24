@@ -813,9 +813,18 @@ class MainWindow(object):
                                      password=self.password).select_data("""select * from portfolios 
                                             where portfolio_name = '{port_name}'""".format(
                                                                                 port_name=self.port_search_line.text()))
+            self.cash_flow_check = SQL(data_base=self.db,
+                                     user_name=self.user_name,
+                                     password=self.password).select_data("""select*from cash_flow 
+                                                                            where portfolio_code = {port_code} 
+                                                                            and cash_flow_type = 'FUNDING'""".format(
+                                                                       port_code=self.get_port_data["portfolio_id"][0]))
 
             if list(self.get_port_data["portfolio_group"])[0] == "Yes":
                 MsgBoxes().info_box(message="Trading activity is not allowed on portfolio groups!",
+                                    title="Notification")
+            elif len(self.cash_flow_check["cash_id"]) == 0:
+                MsgBoxes().info_box(message="Portfolio is not funded. Please place the initial funding!",
                                     title="Notification")
             else:
 
