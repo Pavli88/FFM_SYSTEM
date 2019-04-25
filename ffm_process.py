@@ -243,13 +243,15 @@ class FfmProcess:
                 print("Quering out new trades...")
                 print("NEW TRADES:")
 
-                #print(self.t_min_one_pos)
                 self.trades = self.sql_connection.select_data(select_query="""select*from trade 
                                                                               where date = '{date}' 
                                                                               and portfolio_code = '{port_id}'""".format(
                                                                                                       port_id=port_id,
                                                                                                       date=self.query_date))
+
+                self.filtered_sec_ids = list(set(list(self.trades["sec_id"])))
                 print(self.trades)
+                print(list(set(list(self.trades["sec_id"]))))
                 print("")
 
                 if (len(list(self.t_min_one_pos["pos_id"])) == 0) and len(list(self.trades["trade_id"])) == 0:
@@ -293,30 +295,35 @@ class FfmProcess:
                     print("PROCESSING NEW TRADES AND CALCULATING POSITION BALANCE")
                     print("")
 
-                    for trade in range(len(self.trades["trade_id"])):
+                    for trade in list(set(list(self.trades["sec_id"]))):
 
-                        self.tr = self.trades.iloc[trade]
-                        self.ps = self.t_min_one_pos[self.t_min_one_pos["sec_id"] == self.tr["sec_id"]]
+                        self.tr = self.trades[self.trades["sec_id"] == trade]
+                        self.ps = self.t_min_one_pos[self.t_min_one_pos["sec_id"] == trade]
 
-                        if len(list(self.ps["pos_id"])) >= 1:
-                            pass
-                        else:
-                            print("Security:", self.tr["ticker"])
-                            print("T-2 balance: 0")
-                            print("Close balance:", self.tr["quantity"])
-                            print("Margin:", self.tr["margin_bal"])
-                            print("Writing data to data base")
-
-                            Entries(data_base=self.data_base,
-                                    user_name=args.db_user_name,
-                                    password=args.db_password).positions(date=self.query_date,
-                                                                         portfolio_code=self.tr["portfolio_code"],
-                                                                         strategy_code=self.tr["strategy_code"],
-                                                                         open_bal=0,
-                                                                         close_bal=self.tr["quantity"],
-                                                                         sec_id=self.tr["sec_id"])
-
+                        if sum(self.tr["quantity"]) == 0:
+                            print(list(self.tr["ticker"])[0], ": DAYTRADE! CLOSE BALANCE -> 0")
                             print("")
+                        else:
+                            if len(list(self.ps["pos_id"])) >= 1:
+                                pass
+                            else:
+                                print("Security:", list(self.tr["ticker"])[0])
+                                print("T-2 balance: 0")
+                                print("Close balance:", sum(self.tr["quantity"]))
+                                print("Margin:", list(self.tr["margin_bal"])[0])
+                                print("Writing data to data base")
+                                print("")
+
+                                Entries(data_base=self.data_base,
+                                        user_name=args.db_user_name,
+                                        password=args.db_password).positions(date=self.query_date,
+                                                                             portfolio_code=list(self.tr["portfolio_code"])[0],
+                                                                             strategy_code=list(self.tr["strategy_code"])[0],
+                                                                             open_bal=0,
+                                                                             close_bal=sum(self.tr["quantity"]),
+                                                                             sec_id=list(self.tr["sec_id"])[0])
+
+
 
                     print("MARGIN POSITION CALCULATION")
                     print("")
@@ -737,7 +744,6 @@ class FfmProcess:
                 print("   Positions Risk Calculations   ")
                 print("---------------------------------------")
                 print("")
-
 
     def security_return_calc(self):
         pass

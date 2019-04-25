@@ -11,6 +11,10 @@ class MainWindow(object):
 
     def __init__(self):
 
+        # Path variables
+
+        self.icon_path = "/home/apavlics/Developement/FFM_DEV/Codes/FFM_SYSTEM/FFM_GUI/Icons/"
+
         self.user_name = None
         self.password = None
         self.db = None
@@ -138,7 +142,7 @@ class MainWindow(object):
         self.main_window.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar)
         self.main_window.insertToolBarBreak(self.toolBar)
 
-        testAction = QAction(QIcon('/home/apavlics/Developement/FFM_DEV/Codes/FFM_SYSTEM/FFM_GUI/Icons/graph.png'), 'Flee the Scene', self.toolBar)
+        testAction = QAction(QIcon(self.icon_path + 'graph.png'), 'Flee the Scene', self.toolBar)
         #extractAction.triggered.connect(self.close_application)
 
         #self.toolBar = self.addToolBar("Extraction")
@@ -250,6 +254,7 @@ class MainWindow(object):
         self.statusbar = QtWidgets.QStatusBar(self.main_window)
         self.statusbar.setObjectName("statusbar")
         self.main_window.setStatusBar(self.statusbar)
+        self.statusbar.showMessage("This is a status bar")
 
 # ========== File
         self.menuFile = QtWidgets.QMenu(self.menubar)
@@ -271,6 +276,11 @@ class MainWindow(object):
         self.actionImport_Data.setObjectName("actionImport_Data")
         self.actionImport_Data.setText("Import Data")
         self.menuDatabase.addAction(self.actionImport_Data)
+
+        self.actionSettings = QtWidgets.QAction(self.menuFile)
+        self.actionSettings.setObjectName("actionSettings")
+        self.actionSettings.setText("Settings")
+        self.menuFile.addAction(self.actionSettings)
 
         # Actions
 
@@ -360,32 +370,28 @@ class MainWindow(object):
         self.menuEntry.setTitle("Entry")
         self.menubar.addAction(self.menuEntry.menuAction())
 
-        self.actionPortfolio = QtWidgets.QAction(self.main_window)
+        self.actionPortfolio = QtWidgets.QAction(QIcon(self.icon_path + 'pie-chart.png'), "Portfolio", self.main_window)
         self.actionPortfolio.setObjectName("actionPortfolio")
-        self.actionPortgroup = QtWidgets.QAction(self.main_window)
+        self.actionPortgroup = QtWidgets.QAction(QIcon(self.icon_path + 'tree-structure.png'), "Portfolio Group", self.main_window)
         self.actionPortgroup.setObjectName("actionPortgroup")
-        self.actionStrategy_Model = QtWidgets.QAction(self.main_window)
+        self.actionStrategy_Model = QtWidgets.QAction(QIcon(self.icon_path + 'strat-mod.png'), "Strategy Model",self.main_window)
         self.actionStrategy_Model.setObjectName("actionStrategy_Model")
-        self.actionStrategy = QtWidgets.QAction(self.main_window)
+        self.actionStrategy = QtWidgets.QAction(QIcon(self.icon_path + 'chess.png'), "Strategy",self.main_window)
         self.actionStrategy.setObjectName("actionStrategy")
-        self.actionTrade = QtWidgets.QAction(self.main_window)
-        self.actionTrade.setObjectName("actionTrade")
-        self.actionCash = QtWidgets.QAction(self.main_window)
+        self.actionCash = QtWidgets.QAction(QIcon(self.icon_path + 'money.png'), "Cash", self.main_window)
         self.actionCash.setObjectName("actionCash")
-        self.actionSecurity = QtWidgets.QAction(self.main_window)
+        self.actionSecurity = QtWidgets.QAction(QIcon(self.icon_path + 'certificate.png'), "Security", self.main_window)
         self.actionSecurity.setObjectName("actionSecurity")
         self.menuEntry.addAction(self.actionPortfolio)
         self.menuEntry.addAction(self.actionPortgroup)
         self.menuEntry.addAction(self.actionStrategy_Model)
         self.menuEntry.addAction(self.actionStrategy)
-        self.menuEntry.addAction(self.actionTrade)
         self.menuEntry.addAction(self.actionCash)
         self.menuEntry.addAction(self.actionSecurity)
         self.actionPortfolio.setText("Portfolio")
         self.actionPortgroup.setText("Portfolio Group")
         self.actionStrategy_Model.setText("Strategy Model")
         self.actionStrategy.setText("Strategy")
-        self.actionTrade.setText("Trade")
         self.actionCash.setText("Cash")
         self.actionSecurity.setText("Security")
 
