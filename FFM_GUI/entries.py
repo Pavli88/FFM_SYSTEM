@@ -324,7 +324,7 @@ class EntryWindows:
 
     def strategy_entry(self):
 
-        self.Dialog.resize(428, 192)
+        self.Dialog.resize(424, 217)
         self.Dialog.setWindowTitle("Strategy Entry - " + str(self.db))
         self.Dialog.setFixedSize(self.Dialog.size())
 
@@ -345,7 +345,7 @@ class EntryWindows:
         self.text_input_2.setObjectName("text_input_2")
 
         self.create_button = QtWidgets.QPushButton(self.Dialog)
-        self.create_button.setGeometry(QtCore.QRect(310, 160, 101, 21))
+        self.create_button.setGeometry(QtCore.QRect(310, 160, 101, 41))
         self.create_button.setObjectName("create_button")
 
         self.label_3 = QtWidgets.QLabel(self.Dialog)
@@ -374,17 +374,26 @@ class EntryWindows:
         self.cbox_3.addItems(["MECHANIC", "DISCRETIONARY"])
 
         self.label_5 = QtWidgets.QLabel(self.Dialog)
-        self.label_5.setGeometry(QtCore.QRect(20, 160, 151, 21))
+        self.label_5.setGeometry(QtCore.QRect(20, 190, 151, 16))
         self.label_5.setObjectName("label_5")
 
         self.label_6 = QtWidgets.QLabel(self.Dialog)
         self.label_6.setGeometry(QtCore.QRect(20, 130, 151, 21))
         self.label_6.setObjectName("label_6")
 
+        self.label_7 = QtWidgets.QLabel(self.Dialog)
+        self.label_7.setGeometry(QtCore.QRect(20, 160, 151, 16))
+        self.label_7.setObjectName("label_7")
+        self.label_7.setText("Trade Margin")
+
         self.dateEdit = QtWidgets.QDateEdit(self.Dialog)
-        self.dateEdit.setGeometry(QtCore.QRect(180, 160, 117, 26))
+        self.dateEdit.setGeometry(QtCore.QRect(180, 186, 121, 20))
         self.dateEdit.setDate(QtCore.QDate(date.today().year, date.today().month, date.today().day))
         self.dateEdit.setObjectName("dateEdit")
+
+        self.doubleSpinBox = QtWidgets.QDoubleSpinBox(self.Dialog)
+        self.doubleSpinBox.setGeometry(QtCore.QRect(180, 160, 121, 21))
+        self.doubleSpinBox.setObjectName("doubleSpinBox")
 
         self.label_1.setText("Strategy Name")
         self.label_2.setText("Strategy Descreption")
@@ -670,7 +679,8 @@ class EntryWindows:
                                                select * from portfolios 
                                                where portfolio_name = '{port_name}'""".format(
                                                    port_name=self.cbox_2.currentText()))["portfolio_id"].values)[0],
-                                               strat_type=self.cbox_3.currentText())
+                                               strat_type=self.cbox_3.currentText(),
+                                               trade_margin=self.doubleSpinBox.value())
 
                 self.Dialog.close()
 
