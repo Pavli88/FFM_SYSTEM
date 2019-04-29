@@ -5,6 +5,7 @@ from datetime import date
 from datetime import timedelta
 from _datetime import datetime
 from pandas.tseries.offsets import BDay
+import os
 
 # ----------------- #
 #    ARGUMENTS      #
@@ -27,6 +28,9 @@ parser.add_argument("--portfolio", help="Specifies on which portfolio to run ffm
 parser.add_argument("--db_user_name", help="User name for database login. Switch: username")
 parser.add_argument("--db_password", help="Password for database login. Switch: password")
 parser.add_argument("--env", help="Environment switch. Default:prod; Switches: dev ")
+parser.add_argument("--import_table", help="Imports table to database. Switch: Yes")
+parser.add_argument("--table_file", help="Name of the table file.")
+parser.add_argument("--table_file_path", help="Location of the table file.")
 
 # Process related switches
 
@@ -142,6 +146,26 @@ class FfmProcess:
         print("SQL query date -1: " + str(self.query_date_1))
         print("Environment: " + str(self.data_base))
         print("")
+
+    def import_tables(self):
+
+        """
+        Process which imports and amends table structure. Recommended for initial table setup
+        :return:
+        """
+
+        if args.table_file is None:
+            print("Table file name is missing! Process stopped!")
+        elif args.table_file_path is None:
+            print("Table file location is missing! Process stopped!")
+        else:
+            self.db_import_cmd = """mysql --protocol=tcp --host=localhost --user={user_name} --port=3306 --default-character-set=utf8 --comments --database={to_db}  < '{file_path}{table_name_file}' --password={password}""".format(user_name=args.db_user_name, to_db=self.data_base, file_path=args.table_file_path, table_name_file=args.table_file, password=args.db_password)
+
+            print("Executing table structure import command on", self.data_base, "database... Amending table->", str(args.table_file)[12:-4])
+
+            os.system(command=self.db_import_cmd)
+
+            return self.db_import_cmd
 
     def net_cash_flow(self):
 
@@ -814,5 +838,9 @@ if __name__ == "__main__":
     if args.ncf == "Yes":
 
         ffm_process.net_cash_flow()
+
+    if args.import_table == "Yes":
+
+        ffm_process.import_tables()
 
 
