@@ -1,0 +1,14 @@
+Name of strategy:
+
+FX daytrade strategy
+
+Type: Daytrade
+
+Description of the modell:
+
+Risk parameters:
+
+1% of the strategy NAV per trade
+
+Money management strategy:
+
