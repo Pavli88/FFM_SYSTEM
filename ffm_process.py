@@ -4,6 +4,7 @@ from FFM_SYSTEM.ffm_data import *
 from datetime import date
 from datetime import timedelta
 from _datetime import datetime
+import datetime
 from pandas.tseries.offsets import BDay
 import os
 
@@ -41,8 +42,16 @@ parser.add_argument("--live_nav", help="Calculates portfolios NAV with latest pr
 parser.add_argument("--hold_calc", help="Calculates portfolios holding data. Switch: Yes")
 parser.add_argument("--ncf", help="Portfolio Net Cash Flow calculation. Switch: Yes")
 
-args = parser.parse_args()
+# Broker data load processes
 
+parser.add_argument("--broker_file", help="Name of the broker report file. Switch: name of the file")
+
+ # Etoro
+
+parser.add_argument("--etoro_comm", help="Processes commission data from etoro. Switch: Yes")
+
+
+args = parser.parse_args()
 
 class FfmProcess:
 
@@ -819,6 +828,47 @@ class FfmProcess:
         self.sql_connection.close_connection()
 
 
+class Broker:
+
+    def __init__(self):
+
+        print("--------------------------")
+        print("* BROKER DATA PROCESSING *")
+        print("--------------------------")
+        print("")
+
+        self.sql_connection = SQL(data_base=FfmProcess().data_base,
+                                  user_name=args.db_user_name,
+                                  password=args.db_password)
+
+        self.broker_file = """/home/apavlics/Developement/FFM_DEV/Codes/FFM_SYSTEM/Broker_data/{file}""".format(
+            file=args.broker_file)
+
+        print("Broker file:", self.broker_file)
+
+    def etoro_commission(self):
+
+        # Loading the latest date when commission data was processed
+
+        self.latest_comm_date = self.sql_connection.select_data("""select*from broker_processes""")
+        self.latest_comm_date = self.latest_comm_date[self.latest_comm_date["data_type"] == "COMISSION"]
+        self.latest_comm_date = list(self.latest_comm_date["latest_date"])[-1]
+
+        # Loading broker data into data frame
+        self.xl = pd.ExcelFile(self.broker_file)
+        self.df = self.xl.parse("Transactions Report")
+        self.df = self.df[self.df["Type"] == "Rollover Fee"]
+
+        for record in list(self.df["Date"]):
+
+            self.record_date = datetime.datetime.strptime(record[:10], '%Y-%m-%d')
+
+            if self.record_date.date() < self.latest_comm_date:
+                print("Record was already processed.")
+            else:
+                print("New record")
+
+
 if __name__ == "__main__":
 
     ffm_process = FfmProcess()
@@ -842,5 +892,9 @@ if __name__ == "__main__":
     if args.import_table == "Yes":
 
         ffm_process.import_tables()
+
+    if args.etoro_comm == "Yes":
+
+        Broker().etoro_commission()
 
 

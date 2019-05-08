@@ -225,6 +225,9 @@ class EntryWindows:
         elif self.table_entry == "security":
             self.create_button.setGeometry(QtCore.QRect(480, 20, 101, 21))
             self.create_button.setObjectName("create_button")
+        elif self.table_entry == "security map":
+            self.create_button.setGeometry(QtCore.QRect(350, 10, 89, 25))
+            self.create_button.setObjectName("create_button")
 
     def portfolio_entry(self):
 
@@ -285,6 +288,43 @@ class EntryWindows:
         self.inc_date.setText("Inception Date")
         self.create_button.setText("Create")
         self.checkBox.setText("Portfolio Group")
+
+    def security_map(self):
+
+        self.Dialog.setObjectName("Dialog")
+        self.Dialog.resize(439, 99)
+        self.Dialog.setWindowTitle("Broker Security Mapping")
+
+        self.comboBox = QtWidgets.QComboBox(self.Dialog)
+        self.comboBox.setGeometry(QtCore.QRect(170, 10, 171, 21))
+        self.comboBox.setObjectName("comboBox")
+        self.broker_account = self.entry_connection.select_data("""select*from broker_account """)
+        self.comboBox.addItems(list(self.broker_account["broker_name"]))
+
+        self.label = QtWidgets.QLabel(self.Dialog)
+        self.label.setGeometry(QtCore.QRect(10, 10, 111, 21))
+        self.label.setObjectName("label")
+        self.label_2 = QtWidgets.QLabel(self.Dialog)
+        self.label_2.setGeometry(QtCore.QRect(10, 40, 151, 21))
+        self.label_2.setObjectName("label_2")
+        self.label_3 = QtWidgets.QLabel(self.Dialog)
+        self.label_3.setGeometry(QtCore.QRect(10, 70, 151, 21))
+        self.label_3.setObjectName("label_3")
+        self.lineEdit = QtWidgets.QLineEdit(self.Dialog)
+        self.lineEdit.setGeometry(QtCore.QRect(170, 70, 171, 21))
+        self.lineEdit.setObjectName("lineEdit")
+
+        self.lineEdit_2 = QtWidgets.QLineEdit(self.Dialog)
+        self.lineEdit_2.setGeometry(QtCore.QRect(170, 40, 171, 21))
+        self.lineEdit_2.setObjectName("lineEdit_2")
+        self.securities = self.entry_connection.select_data("""select*from sec_info""")
+        self.sec_completer = QtWidgets.QCompleter(list(self.securities["name"]))
+        self.lineEdit_2.setCompleter(self.sec_completer)
+
+        self.label.setText("Broker")
+        self.label_2.setText("FFM Security Name")
+        self.label_3.setText("Broker Security Name")
+        self.create_button.setText("Enter")
 
     def strat_modell_entry(self):
 
@@ -761,6 +801,38 @@ class EntryWindows:
                                                    sector=self.cbox_3.currentText(),
                                                    website=self.text_input_3.text(),
                                                    country=self.cbox_4.currentText())
+
+                self.Dialog.close()
+
+        elif self.table_entry == "security map":
+
+            if len(self.lineEdit.text()) == 0:
+                self.msg_box(message="Broker security name field is empty !", title="Notification", )
+            else:
+                self.db_connection = SQL(data_base=self.db, user_name=self.user_name, password=self.password)
+
+                self.sec_data = self.db_connection.select_data("""select*from sec_info 
+                                                    where name = '{sec_name}'""".format(sec_name=self.lineEdit_2.text()))
+
+                self.map_id = self.db_connection.select_data("""SELECT MAX(map_id) 
+                                                                AS 'max_id' 
+                                                                FROM broker_security_mapping""").get_values()[0][0] + 1
+
+                self.db_connection.insert_data(insert_query="""insert into broker_security_mapping 
+                
+                                                               (map_id, broker_id, br_sec_name, 
+                                                               ffm_sec_name, ffm_sec_type) 
+                                                               
+                                                               values ({map_id}, {br_id}, 
+                                                               '{br_sec}', 
+                                                               '{ffm_sec}', 
+                                                    '{ffm_type}')""".format(map_id=self.map_id,
+                                                                            br_id=self.broker_account["broker_id"][0],
+                                                                            br_sec=self.lineEdit.text(),
+                                                                            ffm_sec=self.sec_data["ticker"][0],
+                                                                            ffm_type=self.sec_data["type"][0]))
+
+                self.db_connection.close_connection()
 
                 self.Dialog.close()
 

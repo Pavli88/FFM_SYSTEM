@@ -382,18 +382,22 @@ class MainWindow(object):
         self.actionCash.setObjectName("actionCash")
         self.actionSecurity = QtWidgets.QAction(QIcon(self.icon_path + 'certificate.png'), "Security", self.main_window)
         self.actionSecurity.setObjectName("actionSecurity")
+        self.actionSecurityMap = QtWidgets.QAction("Security Mapping", self.main_window)
+        self.actionSecurityMap.setObjectName("actionSecurity")
         self.menuEntry.addAction(self.actionPortfolio)
         self.menuEntry.addAction(self.actionPortgroup)
         self.menuEntry.addAction(self.actionStrategy_Model)
         self.menuEntry.addAction(self.actionStrategy)
         self.menuEntry.addAction(self.actionCash)
         self.menuEntry.addAction(self.actionSecurity)
+        self.menuEntry.addAction(self.actionSecurityMap)
         self.actionPortfolio.setText("Portfolio")
         self.actionPortgroup.setText("Portfolio Group")
         self.actionStrategy_Model.setText("Strategy Model")
         self.actionStrategy.setText("Strategy")
         self.actionCash.setText("Cash")
         self.actionSecurity.setText("Security")
+        self.actionSecurityMap.setText("Security Mapping")
 
         # Actions
         self.actionPortfolio.triggered.connect(self.port_entry)
@@ -402,6 +406,7 @@ class MainWindow(object):
         self.actionCash.triggered.connect(self.cash_entry)
         self.actionSecurity.triggered.connect(self.security_entry)
         self.actionPortgroup.triggered.connect(self.port_group_entry)
+        self.actionSecurityMap.triggered.connect(self.security_mapping)
 
 # ========== Data
         self.menuData = QtWidgets.QMenu(self.menubar)
@@ -804,6 +809,16 @@ class MainWindow(object):
         entry_window = EntryWindows(Dialog, table_entry="security",
                                     data_base=self.db, user_name=self.user_name, password=self.password)
         entry_window.security()
+        entry_window.create_button.clicked.connect(entry_window.create)
+        Dialog.show()
+        Dialog.exec_()
+
+    def security_mapping(self):
+
+        Dialog = QtWidgets.QDialog()
+        entry_window = EntryWindows(Dialog, table_entry="security map",
+                                    data_base=self.db, user_name=self.user_name, password=self.password)
+        entry_window.security_map()
         entry_window.create_button.clicked.connect(entry_window.create)
         Dialog.show()
         Dialog.exec_()
