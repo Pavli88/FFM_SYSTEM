@@ -45,11 +45,8 @@ parser.add_argument("--ncf", help="Portfolio Net Cash Flow calculation. Switch: 
 # Broker data load processes
 
 parser.add_argument("--broker_file", help="Name of the broker report file. Switch: name of the file")
-
- # Etoro
-
-parser.add_argument("--etoro_comm", help="Processes commission data from etoro. Switch: Yes")
-
+parser.add_argument("--broker", help="Name of the broker. Switch: name of the broker")
+parser.add_argument("--daytrade", help="Processes daytrade data. Switch: name of the broker")
 
 args = parser.parse_args()
 
@@ -830,21 +827,49 @@ class FfmProcess:
 
 class Broker:
 
-    def __init__(self):
+    def __init__(self, broker):
 
         print("--------------------------")
         print("* BROKER DATA PROCESSING *")
         print("--------------------------")
         print("")
 
-        self.sql_connection = SQL(data_base=FfmProcess().data_base,
-                                  user_name=args.db_user_name,
-                                  password=args.db_password)
+        self.broker = broker
 
         self.broker_file = """/home/apavlics/Developement/FFM_DEV/Codes/FFM_SYSTEM/Broker_data/{file}""".format(
             file=args.broker_file)
 
         print("Broker file:", self.broker_file)
+
+        # Environment definiton
+
+        if args.env == "dev":
+            self.data_base = "dev_ffm_sys"
+        else:
+            self.data_base = "ffm_sys"
+
+        self.sql_connection = SQL(data_base=self.data_base,
+                                  user_name=args.db_user_name,
+                                  password=args.db_password)
+
+        print("Broker:", self.broker)
+
+        self.broker_process = self.sql_connection.select_data("""select * from broker_processes b, broker_account ba 
+                                                                             where b.broker_id=ba.broker_id 
+                                                                        and ba.broker_name like '{broker}'""".format(
+            broker=self.broker))
+
+        self.latest_comm_date = self.broker_process[self.broker_process["data_type"] == "COMISSION"]
+        self.latest_comm_date = list(self.latest_comm_date["latest_date"])[-1]
+
+        print("Latest commission calculation date:", self.latest_comm_date)
+
+        self.latest_intraday_date = self.broker_process[self.broker_process["data_type"] == "INTRADAY"]
+        self.latest_intraday_date = list(self.latest_intraday_date["latest_date"])[-1]
+
+        print("Latest intraday calculation date:", self.latest_intraday_date)
+
+        self.xl = pd.ExcelFile(self.broker_file)
 
     def etoro_commission(self):
 
@@ -867,6 +892,48 @@ class Broker:
                 print("Record was already processed.")
             else:
                 print("New record")
+
+
+class DayTrade(Broker):
+
+    """
+    Class to load and process the appropriate broker daytrade data to Trade and Trade analysis tables
+    """
+
+    def __init__(self, broker):
+        super().__init__(broker)
+
+    def etoro(self):
+
+        self.df = self.xl.parse("Closed Positions")
+
+        print(self.df)
+
+        # Loading open positions into trade table
+        print("Loading and processing openening positions to trade table")
+
+        for record in range(len(list(self.df["Open Date"]))):
+
+            self.trade = self.df.iloc[record]
+            self.open_date = str(self.trade["Open Date"])[:10].replace("/", "")
+            self.open_date = self.open_date[4:] + "-" + self.open_date[2:4] + "-" + self.open_date[0:2]
+
+            self.record_date = datetime.datetime.strptime(self.open_date[:10], '%Y-%m-%d')
+
+            if self.record_date.date() <= self.latest_intraday_date:
+                print("Record was already processed.")
+            else:
+                self.side = str(self.trade["Action"]).split()
+
+                if self.side[0] == "Buy":
+                    self.db_side = "BUY_TO_OPEN"
+                else:
+                    self.db_side = "SELL_TO_OPEN"
+
+                print("New record:", self.db_side, ":", self.side[1], ":", self.trade["Units"], ":", self.trade["Open Rate"], ":", self.trade["Profit"], ":", self.record_date)
+
+        # Closing open daytrade positions in trade table
+        print("Closing previously processed daytrades in trade table")
 
 
 if __name__ == "__main__":
@@ -893,8 +960,13 @@ if __name__ == "__main__":
 
         ffm_process.import_tables()
 
-    if args.etoro_comm == "Yes":
+    if args.daytrade == "etoro":
 
-        Broker().etoro_commission()
+        if args.broker_file is None:
+            print("Broker file argument is empty. Process is stopped. Please define the broker file.")
+        else:
+            DayTrade(broker=str(args.daytrade)).etoro()
+
+
 
 
