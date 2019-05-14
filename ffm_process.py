@@ -24,6 +24,8 @@ parser.add_argument("--portfolio", help="Specifies on which portfolio to run ffm
                                         "Switch: All - All portfolios"
                                         "Switch: FUND - Specific fund")
 
+parser.add_argument("--strategy", help="Imports strategy data from db. Switch: Name of the strategy")
+
 # Database related switches
 
 parser.add_argument("--db_user_name", help="User name for database login. Switch: username")
@@ -47,6 +49,7 @@ parser.add_argument("--ncf", help="Portfolio Net Cash Flow calculation. Switch: 
 parser.add_argument("--broker_file", help="Name of the broker report file. Switch: name of the file")
 parser.add_argument("--broker", help="Name of the broker. Switch: name of the broker")
 parser.add_argument("--daytrade", help="Processes daytrade data. Switch: name of the broker")
+parser.add_argument("--dt_sec_type", help="Daytrade security type to process only. Switch: Type of security")
 
 args = parser.parse_args()
 
@@ -74,9 +77,10 @@ class FfmProcess:
         if args.rundate is not None:
 
             self.portdate1 = args.rundate
-            self.portdate = datetime.date(datetime(year=int(self.portdate1[0:4]),
-                                                   month=int(self.portdate1[4:6]),
-                                                   day=int(self.portdate1[6:8])))
+
+            self.portdate = datetime.date(year=int(self.portdate1[0:4]),
+                                          month=int(self.portdate1[4:6]),
+                                          day=int(self.portdate1[6:8]))
 
             self.weekday = self.portdate.weekday()
 
@@ -852,46 +856,53 @@ class Broker:
                                   user_name=args.db_user_name,
                                   password=args.db_password)
 
+        self.strategy = self.sql_connection.select_data("""select*from strategy s, portfolios p 
+                                                           where p.portfolio_id  = s.portfolio_code 
+                                                           and s.strategy_name = '{strat_name}'""".format(
+            strat_name=args.strategy))
+
+        self.latest_trd_id = self.sql_connection.select_data("""SELECT MAX(trade_id) AS 'max_id' FROM trade""")
+        self.latest_trd_id = self.latest_trd_id["max_id"][0]
+
+        self.latest_trd_anal_id = self.sql_connection.select_data("""SELECT MAX(id) AS 'max_id' FROM trade_analysis""")
+        self.latest_trd_anal_id = self.latest_trd_anal_id["max_id"][0]
+
+        if self.latest_trd_anal_id is None:
+            self.latest_trd_anal_id = 0
+
+        print("Strategy Name:", self.strategy["strategy_name"][0])
+        print("Strategy Code:", self.strategy["strategy_code"][0])
+        print("Portfolio Code:", self.strategy["portfolio_code"][0])
+        print("Trade Margin:", self.strategy["trade_margin"][0])
+        print("Latest TRD ID:", self.latest_trd_id)
+        print("Latest TRD Analysis ID:", self.latest_trd_anal_id)
+
         print("Broker:", self.broker)
 
-        self.broker_process = self.sql_connection.select_data("""select * from broker_processes b, broker_account ba 
-                                                                             where b.broker_id=ba.broker_id 
-                                                                        and ba.broker_name like '{broker}'""".format(
-            broker=self.broker))
+        self.broker_process = self.sql_connection.select_data("""select b.strategy_name, b.data_type, b.latest_date, 
+                                                                 b.broker_id from broker_processes b, broker_account ba 
+                                                                 where b.broker_id=ba.broker_id 
+                                                                 and ba.broker_name like '{broker}' 
+                                                                 and b.strategy_name = '{strat}'""".format(
+            broker=self.broker,
+            strat=args.strategy))
 
-        self.latest_comm_date = self.broker_process[self.broker_process["data_type"] == "COMISSION"]
-        self.latest_comm_date = list(self.latest_comm_date["latest_date"])[-1]
+        if len(self.broker_process["strategy_name"]) == 0:
+            self.latest_intraday_date = self.strategy["inception_date"][0]
+        else:
+            self.latest_intraday_date = self.broker_process[self.broker_process["data_type"] == "INTRADAY"]
+            self.latest_intraday_date = list(self.latest_intraday_date["latest_date"])[-1]
 
-        print("Latest commission calculation date:", self.latest_comm_date)
-
-        self.latest_intraday_date = self.broker_process[self.broker_process["data_type"] == "INTRADAY"]
-        self.latest_intraday_date = list(self.latest_intraday_date["latest_date"])[-1]
-
+        # if len(self.broker_process["strategy_name"]) == 0 and self.broker_process["data_type"][0] == "COMISSION":
+        #     self.latest_comm_date = self.strategy["inception_date"][0]
+        # else:
+        #     self.latest_comm_date = self.broker_process[self.broker_process["data_type"] == "COMISSION"]
+        #     self.latest_comm_date = list(self.latest_comm_date["latest_date"])[-1]
+        #
+        # print("Latest commission calculation date:", self.latest_comm_date)
         print("Latest intraday calculation date:", self.latest_intraday_date)
 
         self.xl = pd.ExcelFile(self.broker_file)
-
-    def etoro_commission(self):
-
-        # Loading the latest date when commission data was processed
-
-        self.latest_comm_date = self.sql_connection.select_data("""select*from broker_processes""")
-        self.latest_comm_date = self.latest_comm_date[self.latest_comm_date["data_type"] == "COMISSION"]
-        self.latest_comm_date = list(self.latest_comm_date["latest_date"])[-1]
-
-        # Loading broker data into data frame
-        self.xl = pd.ExcelFile(self.broker_file)
-        self.df = self.xl.parse("Transactions Report")
-        self.df = self.df[self.df["Type"] == "Rollover Fee"]
-
-        for record in list(self.df["Date"]):
-
-            self.record_date = datetime.datetime.strptime(record[:10], '%Y-%m-%d')
-
-            if self.record_date.date() < self.latest_comm_date:
-                print("Record was already processed.")
-            else:
-                print("New record")
 
 
 class DayTrade(Broker):
@@ -906,34 +917,248 @@ class DayTrade(Broker):
     def etoro(self):
 
         self.df = self.xl.parse("Closed Positions")
+        self.df = self.df[self.df["Position ID"] > 0]
 
+        print("")
+        print("TRADES")
         print(self.df)
 
         # Loading open positions into trade table
+        print("")
         print("Loading and processing openening positions to trade table")
 
-        for record in range(len(list(self.df["Open Date"]))):
+        self.trade_id_list = []
+        self.record_date_list = []
+
+        for record in range(len(list(self.df["Open Date"]))-1, 0, -1):
 
             self.trade = self.df.iloc[record]
             self.open_date = str(self.trade["Open Date"])[:10].replace("/", "")
             self.open_date = self.open_date[4:] + "-" + self.open_date[2:4] + "-" + self.open_date[0:2]
 
+            self.close_date = str(self.trade["Open Date"])[:10].replace("/", "")
+            self.close_date = self.close_date[4:] + "-" + self.close_date[2:4] + "-" + self.close_date[0:2]
+            self.close_date = datetime.datetime.strptime(self.close_date[:10], '%Y-%m-%d')
+
             self.record_date = datetime.datetime.strptime(self.open_date[:10], '%Y-%m-%d')
 
-            if self.record_date.date() <= self.latest_intraday_date:
-                print("Record was already processed:", self.record_date)
-            else:
-                self.side = str(self.trade["Action"]).split()
+            # Checking if trade is an intraday trade
+            if str(self.close_date-self.record_date) == "0:00:00":
 
-                if self.side[0] == "Buy":
-                    self.db_side = "BUY_TO_OPEN"
+                # Checking if trade was already processed
+                if self.record_date.date() <= self.latest_intraday_date:
+                    print("Record was already processed:", self.record_date)
                 else:
-                    self.db_side = "SELL_TO_OPEN"
+                    self.side = str(self.trade["Action"]).split()
 
-                print("New record:", self.db_side, ":", self.side[1], ":", self.trade["Units"], ":", self.trade["Open Rate"], ":", self.trade["Profit"], ":", self.record_date)
+                    self.security = self.sql_connection.select_data(select_query="""select*from broker_security_mapping bm, 
+                                                                                    sec_info s 
+                                                                                    where bm.ffm_sec_name = s.ticker 
+                                                                                    and bm.br_sec_name = '{sec}'""".format(
+                        sec=self.side[1]))
+
+                    if len(self.security["sec_id"]) == 0:
+                        print(self.side[1], " is not mapped in Broker Mapping Table!")
+                    else:
+
+                        if self.security["ffm_sec_type"][0] == args.dt_sec_type:
+
+                            self.margin = float(self.trade["Units"]) * float(self.trade["Open Rate"]) * -1 * (
+                                float(self.strategy["trade_margin"][0]))
+
+                            if self.side[0] == "Buy":
+                                self.db_side_type = "BUY_TO_OPEN"
+                                self.db_side = "BUY"
+                                self.collateral_bal = 0
+
+                                self.cash_flow_ammount = (float(self.trade["Units"]) * float(
+                                    self.trade["Open Rate"]) + self.margin) * -1
+                                self.inflow_ammount = (float(self.trade["Units"]) * float(
+                                    self.trade["Close Rate"]) + self.margin)
+                            else:
+                                self.db_side_type = "SELL_TO_OPEN"
+                                self.db_side = "SELL"
+                                self.collateral_bal = self.trade["Units"] * float(self.trade["Open Rate"]) * -2
+
+                                self.cash_flow_ammount = (float(self.trade["Units"]) * float(
+                                    self.trade["Open Rate"]) + self.margin)
+                                self.inflow_ammount = (float(self.trade["Units"]) * float(
+                                    self.trade["Close Rate"]) + self.margin) * -1
+
+                            self.latest_trd_id = self.latest_trd_id + 1
+
+                            print("New record:", "| TRD ID: ", self.latest_trd_id, "| Date:", self.record_date,
+                                  "| Port Code:",
+                                  self.strategy["portfolio_code"][0], "| Strat Code:",
+                                  self.strategy["strategy_code"][0],
+                                  "| Tran Type:", self.db_side_type, "| Sec:", self.side[1], "| Q:",
+                                  self.trade["Units"],
+                                  "| Price:", self.trade["Open Rate"], "| P&L:", self.trade["Profit"],
+                                  "| Leverage: Yes",
+                                  "| Lev %:", self.strategy["trade_margin"][0] * 100, "| Margin:", self.margin)
+
+                            # Saving trade to trade table
+                            self.insert_query = """insert into trade (trade_id, date, trade_num, portfolio_code,
+                                                              strategy_code, side, quantity, trade_price,
+                                                              leverage, status, sl, sl_level,
+                                                              sec_id, leverage_perc, action, ticker, margin_bal, collateral)
+
+                                           values ('{trade_id}',  '{date}',
+                                                   '{trade_num}','{portfolio_code}',
+                                                   '{strategy_code}',  '{side}',
+                                                   '{quantity}', '{trade_price}',
+                                                   '{leverage}', '{status}',
+                                                   '{sl}', '{sl_level}',
+                                                   '{sec_id}', '{leverage_perc}',
+                                                   '{action}', '{ticker}','{mb}','{coll}')""".format(
+                                trade_id=self.latest_trd_id,
+                                date=self.record_date,
+                                trade_num=-1,
+                                portfolio_code=self.strategy["portfolio_code"][0],
+                                strategy_code=self.strategy["strategy_code"][0],
+                                side=self.db_side,
+                                quantity=self.trade["Units"],
+                                trade_price=self.trade["Open Rate"],
+                                leverage="Yes",
+                                status="OPEN",
+                                sl="Yes",
+                                sl_level=0,
+                                sec_id=self.security["sec_id"][0],
+                                leverage_perc=self.strategy["trade_margin"][0] * 100,
+                                action=self.db_side_type,
+                                ticker=self.security["ticker"][0],
+                                mb=self.margin,
+                                coll=self.collateral_bal)
+
+                            # self.sql_connection.insert_data(insert_query=self.insert_query)
+
+                            # Saving cash outflow movements into cash flow table
+
+                            print("Cash Outflow:", self.cash_flow_ammount, "Cash Inflow:", self.inflow_ammount,
+                                  "P&L:", self.inflow_ammount + self.cash_flow_ammount)
+
+                            Entries(data_base=self.data_base,
+                                    user_name=args.db_user_name,
+                                    password=args.db_password).cash_flow(
+                                                            port_code=self.strategy["portfolio_code"][0],
+                                                            ammount=self.cash_flow_ammount,
+                                                            cft="OUTFLOW",
+                                                            date=self.record_date,
+                                                            currency=self.strategy["currency"][0],
+                                                            comment="Daytrade",
+                                                            client="broker process")
+
+                            Entries(data_base=self.data_base,
+                                    user_name=args.db_user_name,
+                                    password=args.db_password).cash_flow(
+                                                            port_code=self.strategy["portfolio_code"][0],
+                                                            ammount=self.inflow_ammount,
+                                                            cft="INFLOW",
+                                                            date=self.record_date,
+                                                            currency=self.strategy["currency"][0],
+                                                            comment="Daytrade",
+                                                            client="broker process")
+
+                            print("")
+
+                            # Saving trade data to trade analysis table
+
+                            self.latest_trd_anal_id = self.latest_trd_anal_id + 1
+
+                            self.tr_insert_query = """insert into trade_analysis 
+                                                     (trade_id, open_date, portfolio_id, strategy_id,
+                                                      trd_price, quantity, sl, cost, sl_cost, status, sl_cost_to_nav, id, 
+                                                      trd_duration, close_pnl) 
+
+                                                      values ('{trd_id}', '{open_date}', '{portfolio_id}', '{strat_id}', 
+                                                      '{trd_price}', '{quantity}', '{sl}', '{cost}', '{sl_cost}', 'CLOSED', 
+                                                      '{slcn}','{id}', '{trd_dur}', '{cl_pnl}')""".format(
+                                trd_id=self.latest_trd_id,
+                                open_date=self.record_date,
+                                portfolio_id=self.strategy["portfolio_code"][0],
+                                strat_id=self.strategy["strategy_code"][0],
+                                trd_price=self.trade["Open Rate"],
+                                quantity=self.trade["Units"],
+                                sl=0,
+                                cost=0,
+                                sl_cost=0,
+                                slcn=0,
+                                id=self.latest_trd_anal_id,
+                                trd_dur=0,
+                                cl_pnl=self.trade["Profit"])
+
+                            self.sql_connection.insert_data(insert_query=self.tr_insert_query)
+
+                            self.trade_id_list.append(self.latest_trd_id)
+                        else:
+                            print("Security cannot be processed in", str(args.strategy), "strategy!")
+
+                self.record_date_list.append(self.record_date)
+
+            else:
+                print("Position is not an intraday trade!")
+
+        print("Trade ID List:", self.trade_id_list)
+        print("Latest Record Date:", self.record_date_list[-1])
 
         # Closing open daytrade positions in trade table
         print("Closing previously processed daytrades in trade table")
+
+        print("Updating broker process table with new record.")
+        self.process_id = self.sql_connection.select_data("""SELECT MAX(process_id) 
+                                                             AS 'max_id' FROM broker_processes""")
+
+        self.process_id = self.process_id["max_id"][0]
+
+        if self.process_id is None:
+            self.process_id = 0
+
+        self.broker_id = self.sql_connection.select_data(select_query="""select * from broker_account 
+                                                                         where strategy = '{strat}' 
+                                                                         and broker_name like 'etoro'""".format(
+            strat=args.strategy))
+
+        self.sql_connection.insert_data(insert_query="""insert into broker_processes 
+                                                        (process_id, broker_id, data_type, latest_date, 
+                                                        date, strategy_name, sec_type) 
+                                                        
+                                                        values 
+                                                        
+                                                ({proc_id}, {br_id}, 'INTRADAY', '{latest_date}', 
+                                                '{today}', '{strat}', '{sec_type}')""".format(
+            proc_id=self.process_id+1,
+            br_id=self.broker_id["broker_id"][0],
+            latest_date=self.record_date_list[-1],
+            today=date.today(),
+            strat=args.strategy,
+            sec_type=args.dt_sec_type))
+
+
+class TradeAnalysis:
+
+    """In this class trade and strategy analysis metrics can be found"""
+
+    def __init__(self):
+        pass
+
+
+class TradeError(TradeAnalysis):
+
+    def __init__(self):
+        pass
+
+    def know_market_dir(self):
+
+        """This error measures if pre-defined trade risk is larger than it is allowed for the strategy compared to NAV.
+        If within a trading day increasing number of trades occures with larger risk/pos represent this trading error"""
+
+        pass
+
+    def over_trading(self):
+
+        """This check measures if over trading occured within the day."""
+
+        pass
 
 
 if __name__ == "__main__":
@@ -964,6 +1189,8 @@ if __name__ == "__main__":
 
         if args.broker_file is None:
             print("Broker file argument is empty. Process is stopped. Please define the broker file.")
+        elif args.dt_sec_type is None:
+            print("Security type for processing was not given. Process stopped !")
         else:
             DayTrade(broker=str(args.daytrade)).etoro()
 
