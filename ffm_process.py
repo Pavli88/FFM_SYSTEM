@@ -921,7 +921,7 @@ class DayTrade(Broker):
             self.record_date = datetime.datetime.strptime(self.open_date[:10], '%Y-%m-%d')
 
             if self.record_date.date() <= self.latest_intraday_date:
-                print("Record was already processed.")
+                print("Record was already processed:", self.record_date)
             else:
                 self.side = str(self.trade["Action"]).split()
 
