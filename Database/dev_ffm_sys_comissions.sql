@@ -16,16 +16,20 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `broker`
+-- Table structure for table `comissions`
 --
 
-DROP TABLE IF EXISTS `broker`;
+DROP TABLE IF EXISTS `comissions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `broker` (
-  `broker_id` int(11) NOT NULL,
-  `broker_name` varchar(45) DEFAULT NULL,
-  PRIMARY KEY (`broker_id`)
+CREATE TABLE `comissions` (
+  `comission_id` int(11) NOT NULL,
+  `broker` int(11) DEFAULT NULL,
+  `broker_commission_id` int(11) DEFAULT NULL,
+  `ammount` float DEFAULT NULL,
+  `commission_name` varchar(45) DEFAULT NULL,
+  `date` date DEFAULT NULL,
+  PRIMARY KEY (`comission_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -38,4 +42,4 @@ CREATE TABLE `broker` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-04-29 23:27:57
+-- Dump completed on 2019-05-27 21:05:19

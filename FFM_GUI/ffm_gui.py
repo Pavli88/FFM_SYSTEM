@@ -11,10 +11,6 @@ class MainWindow(object):
 
     def __init__(self):
 
-        # Path variables
-
-        self.icon_path = "/home/apavlics/Developement/FFM_DEV/Codes/FFM_SYSTEM/FFM_GUI/Icons/"
-
         self.user_name = None
         self.password = None
         self.db = None
@@ -115,10 +111,19 @@ class MainWindow(object):
 
             self.login_dialog.close()
 
-
-        self.load_port_list = SQL(data_base=self.db,
+        self.db_connection = SQL(data_base=self.db,
                                   user_name=self.user_name,
-                                  password=self.password).select_data("select*from portfolios")
+                                  password=self.password)
+
+        self.load_port_list = self.db_connection.select_data("select*from portfolios")
+
+        # Path variables
+
+        self.load_settings = self.db_connection.select_data("select*from settings where id = 1")
+
+        self.icon_path = str(self.load_settings["main_folder"][0]) + "/FFM_GUI/Icons/"
+
+        print(self.icon_path)
 
     def login_reject(self):
 
@@ -283,6 +288,7 @@ class MainWindow(object):
         self.menuFile.addAction(self.actionSettings)
 
         # Actions
+        self.actionSettings.triggered.connect(self.settings_window)
 
 # ========== Portfolio Management
         self.menuPort_Management = QtWidgets.QMenu(self.main_window)
@@ -763,13 +769,26 @@ class MainWindow(object):
 
                     # Widget update
 
+    def settings_window(self):
+
+        Dialog = QtWidgets.QDialog()
+
+        entry_window = EntryWindows(Dialog, table_entry="settings",
+                                    data_base=self.db, user_name=self.user_name, password=self.password)
+
+        entry_window.settings()
+        entry_window.create_button.clicked.connect(entry_window.create)
+
+        Dialog.show()
+        Dialog.exec_()
+
     def port_entry(self):
 
         Dialog = QtWidgets.QDialog()
         entry_window = EntryWindows(Dialog, table_entry="portfolios",
                                     data_base=self.db, user_name=self.user_name, password=self.password)
         entry_window.portfolio_entry()
-        entry_window.create_button.clicked.connect(entry_window.create)
+
         Dialog.show()
         Dialog.exec_()
 

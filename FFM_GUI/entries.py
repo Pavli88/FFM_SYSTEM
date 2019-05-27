@@ -228,6 +228,30 @@ class EntryWindows:
         elif self.table_entry == "security map":
             self.create_button.setGeometry(QtCore.QRect(350, 10, 89, 25))
             self.create_button.setObjectName("create_button")
+        elif self.table_entry == "settings":
+            self.create_button.setGeometry(QtCore.QRect(540, 10, 91, 21))
+            self.create_button.setObjectName("create_button")
+
+    def settings(self):
+
+        self.Dialog.resize(637, 39)
+
+        self.settings_values = SQL(data_base=self.db,
+                                   user_name=self.user_name,
+                                   password=self.password).select_data(select_query="""select*from settings where id = 1""")
+        print(self.settings_values)
+        self.label = QtWidgets.QLabel(self.Dialog)
+        self.label.setGeometry(QtCore.QRect(10, 10, 181, 21))
+        self.label.setObjectName("label")
+
+        self.lineEdit = QtWidgets.QLineEdit(self.Dialog)
+        self.lineEdit.setGeometry(QtCore.QRect(200, 10, 331, 21))
+        self.lineEdit.setObjectName("lineEdit")
+        self.lineEdit.setText(str(self.settings_values["main_folder"][0]))
+
+        self.Dialog.setWindowTitle("Settings")
+        self.create_button.setText("Update")
+        self.label.setText("FFM SYSTEM Folder Path")
 
     def portfolio_entry(self):
 
@@ -835,6 +859,16 @@ class EntryWindows:
                 self.db_connection.close_connection()
 
                 self.Dialog.close()
+
+        elif self.table_entry == "settings":
+
+            self.db_connection = SQL(data_base=self.db, user_name=self.user_name, password=self.password)
+            self.db_connection.insert_data(insert_query="""update settings 
+                                                           set main_folder = '{folder_id}' 
+                                                           where id  = 1""".format(folder_id=self.lineEdit.text()))
+            self.db_connection.close_connection()
+
+            self.msg_box(message="Settings are updated!", title="Notification", )
 
     def db_radio_button(self, button, table=None, cbox=None, col_name=None):
 

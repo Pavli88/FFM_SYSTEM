@@ -16,32 +16,18 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `intraday_eq_price`
+-- Table structure for table `broker_account`
 --
 
-DROP TABLE IF EXISTS `intraday_eq_price`;
+DROP TABLE IF EXISTS `broker_account`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `intraday_eq_price` (
-  `ticker` tinytext,
-  `date` date DEFAULT NULL,
-  `minute` time DEFAULT NULL,
-  `high` float DEFAULT NULL,
-  `low` float DEFAULT NULL,
-  `average` float DEFAULT NULL,
-  `volume` int(11) DEFAULT NULL,
-  `notional` float DEFAULT NULL,
-  `number_of_trades` int(11) DEFAULT NULL,
-  `market_high` float DEFAULT NULL,
-  `market_low` float DEFAULT NULL,
-  `market_average` float DEFAULT NULL,
-  `market_volume` int(11) DEFAULT NULL,
-  `market_notional` float DEFAULT NULL,
-  `market_number_of_trades` int(11) DEFAULT NULL,
-  `open` float DEFAULT NULL,
-  `close` float DEFAULT NULL,
-  `market_open` float DEFAULT NULL,
-  `market_close` float DEFAULT NULL
+CREATE TABLE `broker_account` (
+  `broker_id` int(11) NOT NULL,
+  `broker_name` varchar(45) DEFAULT NULL,
+  `currency` float DEFAULT NULL,
+  `strategy` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`broker_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
